@@ -149,7 +149,7 @@ class ThermoCorrections(ReactionModelWrapper):
         # pH corrections to proton and hydroxide species
         if any(ads in ['ele_g', 'H_g', 'OH_g'] for ads in self.species_definitions.keys()):
             G_H2 = self._electronic_energy_dict['H2_g'] + self._correction_dict['H2_g']
-            G_H = 0.5*G_H2 - .0592*self.pH
+            G_H = 0.5*G_H2 - .0592*self.pH/298*self.thermodynamic_variables['temperature']
             G_H2O = self._electronic_energy_dict['H2O_g'] + self._correction_dict['H2O_g']
             H2O_index = self.gas_names.index('H2O_g')
             G_OH = G_H2O - G_H # Do not need Kw, just need to make sure equilibria are satisfied
