@@ -114,6 +114,11 @@ class ReactionModel:
         for key in kwargs:
             setattr(self,key,kwargs[key])
 
+
+        if hasattr(self,'max_log_line_length'):
+            print 'setting'
+            self._max_log_line_length=self.max_log_line_length
+
         if hasattr(self,'setup_file'): #parse in setup file.
             #Note that the syntax is simply python variable definitions.
             #This is NOT idiot proof.
@@ -147,7 +152,6 @@ class ReactionModel:
                     )
                 )
             ))
-
         #ensure resolution has the proper dimensions
         if not hasattr(self.resolution,'__iter__'):
             self.resolution = [self.resolution]*len(self.descriptor_names)
@@ -233,6 +237,7 @@ class ReactionModel:
             #any re-loaded model will have stdout
             has_all = False
 
+
         if self._solved == self._token() and not getattr(self,'recalculate',None):
             #Do not solve the same model twice
             has_all = True
@@ -250,12 +255,14 @@ class ReactionModel:
                     self.descriptor_space_analysis()
                     ran_dsa = True
 
+
             #Get rates at single points
             if getattr(self,'descriptors',None):
                 self.single_point_analysis(self.descriptors)
             #Get rates at multiple points
             if getattr(self,'descriptor_values',None):
                 self.multi_point_analysis()
+
 
             #If a map exists, run descriptor space analysis last (so that single-point guesses are
             #not discarded)
@@ -275,6 +282,7 @@ class ReactionModel:
             for attr in self._pickle_attrs:
                 pickled_data[attr] = getattr(self,attr)
             pickle.dump(pickled_data,open(self.data_file,'w'))
+
 
             #Make logfile
             log_txt = self._log_imports
@@ -300,7 +308,6 @@ class ReactionModel:
 
             if getattr(self,'create_standalone',None):
                 self.make_standalone()
-
     def descriptor_space_analysis(self):
         """
         Use mapper to create map/volcano-plot of rates/coverages.
@@ -405,6 +412,7 @@ class ReactionModel:
                     self.parse_headers += ['coverage']
                 self.parse() #Automatically parse in data.
 
+
         self.load_data_file()
 
         self.set_rxn_options()
@@ -427,6 +435,7 @@ class ReactionModel:
                         setattr(self,attr,pickled_data[attr])
                 else:
                     setattr(self,attr,pickled_data[attr])
+
 
     def parse(self,*args, **kwargs): #
         """
