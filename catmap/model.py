@@ -116,7 +116,6 @@ class ReactionModel:
 
 
         if hasattr(self,'max_log_line_length'):
-            print 'setting'
             self._max_log_line_length=self.max_log_line_length
 
         if hasattr(self,'setup_file'): #parse in setup file.
@@ -365,6 +364,8 @@ class ReactionModel:
                 prefactor_list=None,
                 A_uc=None,
                 interaction_fitting_mode=None,
+                potential_reference_scale='SHE',
+                extrapolated_potential = 0.0,
                 decimal_precision = 75,
                 verbose = 1,
                 data_file = 'data.pkl')
@@ -373,6 +374,7 @@ class ReactionModel:
         locs = defaults
 
         execfile(setup_file,globs,locs)
+        #this defines instances of the sub-classes of CatMAP, as e.g. the ThermoCorrection class
         for var in locs.keys():
             if var in self._classes:
                 #black magic to auto-import classes
@@ -1522,7 +1524,7 @@ class ReactionModel:
         """
         if not any(ads in ['ele_g', 'H_g', 'OH_g'] for ads in self.species_definitions.keys()):
             return
-        self.pH = getattr(self, 'pH', 0)  # Default to RHE scale
+        self.pH = getattr(self, 'pH', 0)
         for ads in ['ele_g', 'H_g', 'OH_g']:
             if not self.species_definitions.get(ads):
                 continue

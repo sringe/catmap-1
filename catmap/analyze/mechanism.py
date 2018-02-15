@@ -4,6 +4,7 @@ from math import log
 from catmap.functions import convert_formation_energies
 from graphviz import Digraph
 from itertools import chain, product
+import sys
 
 class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
     """
@@ -126,6 +127,9 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                         for key in energy_dict:
                             if key.endswith('_g'):
                                 P = self.gas_pressures[self.gas_names.index(key)]
+                                if P==0:
+                                    print('Pressure is zero, setting it to 1')
+                                    P=1
                                 energy_dict[key] += self._kB*self.temperature*log(P)
                    
                     if self.coverage_correction == True:

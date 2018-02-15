@@ -1,3 +1,4 @@
+import sys
 templates = {}
 
 #LaTeX templates
@@ -245,8 +246,14 @@ def interaction_function(coverages,energies,interaction_vector,F,include_derivat
     sites = [0]*len(coverages)
     c_tots = [0]*len(coverages)
     for s in site_info_dict:
+#        print 's',s
         idxs, max_cvg, F_params = site_info_dict[s]
-        cvgs = [coverages[j] for j in idxs]
+        # HACK!
+        hack_list = [10] # idx of H*
+        if hack_list:
+            cvgs = [coverages[j] for j in idxs if j not in hack_list]
+        else:
+            cvgs = [coverages[j] for j in idxs]
         c_tot_i = sum(cvgs)
         f, df = F(c_tot_i,**F_params)
         for idx in idxs:
@@ -254,6 +261,7 @@ def interaction_function(coverages,energies,interaction_vector,F,include_derivat
             df_vector[idx] = df
             sites[idx] = s
             c_tots[idx] = c_tot_i
+
     Es = []
     dEs = []
 
@@ -272,24 +280,46 @@ def interaction_function(coverages,energies,interaction_vector,F,include_derivat
             for n,theta_n in enumerate(coverages):
                 df_sum = 0
                 f_sum = 0
-                for j,theta_j in enumerate(coverages):
-                    df= df_vector[j]
-                    f = f_vector[j]
-                    ep = epsilon_vector[j]
-                    if j==n:
-                        delta = 1
-                    else:
-                        delta = 0
-                    if sites[j] == sites[n]:
-                        dsum = 1
-                    else:
-                        dsum = 0
-                    df_sum += df*dsum*ep*theta_j
-                    f_sum += f*ep*delta
+                if n in hack_list:
+                    for j,theta_j in enumerate(coverages):
+                        f = f_vector[j]
+                        ep = epsilon_vector[j]
+                        if j==n:
+                            delta = 1
+                        else:
+                            delta = 0
+                        f_sum += f*ep*delta
+                else:
+                    for j,theta_j in enumerate(coverages):
+                        df= df_vector[j]
+                        f = f_vector[j]
+                        ep = epsilon_vector[j]
+                        if j==n:
+                            delta = 1
+                        else:
+                            delta = 0
+                        if sites[j] == sites[n]:
+                            dsum = 1
+                        else:
+                            dsum = 0
+                        df_sum += df*dsum*ep*theta_j
+                        f_sum += f*ep*delta
                 diff_vector.append(df_sum+f_sum)
             dEs.append(diff_vector)
         else:
             dEs = None
+    
+    hack_site_dict = {}
+    #hack_site_dict = {1: 3, 6: 7} # change of idx: same changes applied to idx
+    #hack_site_dict = {1: 3, 5: 7, 6: 8} # change of idx: same changes applied to idx
+    if hack_site_dict:
+        for i in hack_site_dict:
+            if Es:
+                Es[hack_site_dict[i]] += Es[i]-energies[i]
+            if dEs:
+                dEs[hack_site_dict[i]] = dEs[i]
+        
+    
     E_int = None
     if include_integral:
         raise UserWarning('First-order interactions are not '
@@ -374,7 +404,13 @@ def interaction_function(coverages,energies,epsilon,F,include_derivatives=True,i
             term_2[k] += 2*f[s][q_k]*df[s][q_k]*eps_theta_theta[s][q_k]
 
     #combine terms with constant energy to give E_diff
-    E_diff = [a+b+c for a,b,c in zip(energies,term_1,term_2)]
+    #HACK!!!
+    E_diff = [a+b for a,b in zip(energies,term_1)]
+    #hack_list = [7,19]
+    hack_list = []
+    if hack_list:
+        for idx in hack_list:
+            E_diff[idx] = energies[idx]
 
     if include_derivatives:
         #compute the jacobian
@@ -389,6 +425,7 @@ def interaction_function(coverages,energies,epsilon,F,include_derivatives=True,i
                 #obtained from tensor calculus, checked against numerical derivative
                 E_jacob[l][k] += (     \
                          (f_sq**2)*epsilon[l*N_ads+k] +\
+                         #2*(f_sq*df_sq*(eps_theta[k][s_l]+eps_theta[l][q_k]) )) xinyan's stuff
                          2*(f_sq*df_sq*(eps_theta[k][s_l]+eps_theta[l][q_k]) + \
                          eps_theta_theta[s_l][q_k]*((df_sq**2) + (f_sq*d2f[s_l][q_k]))))
                 
@@ -396,9 +433,20 @@ def interaction_function(coverages,energies,epsilon,F,include_derivatives=True,i
                 if l in idx_lists[q_k]:
                     for s in range(N_sites):
                         E_jacob[l][k] += 2*(     \
+                             #f[s][q_k]*df[s][q_k]*(eps_theta[k][s]+eps_theta[l][s])) xinyans stuff
                              f[s][q_k]*df[s][q_k]*(eps_theta[k][s]+eps_theta[l][s]) + \
                              eps_theta_theta[s][q_k]*((df[s][q_k]**2) + \
                                                        f[s][q_k]*d2f[s][q_k]))
+                
+                
+        #print E_jacob
+        #HACK
+        if hack_list:
+            if E_jacob:
+                for idx in hack_list:
+                    E_jacob[idx] = [1.e-50]*N_ads
+                    for i in range(N_ads):
+                        E_jacob[i][idx] = 1.e-50
     else:
         E_jacob = None
 
