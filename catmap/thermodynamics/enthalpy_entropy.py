@@ -129,6 +129,7 @@ class ThermoCorrections(ReactionModelWrapper):
         self._frequency_dict = frequency_dict
 
         # apply corrections in self.thermodynamic_corrections on top of each other
+#        print 'before',correction_dict['H2_g']
         for correction in self.thermodynamic_corrections:
             mode = getattr(self,correction+'_thermo_mode')
             #current dictionary that is outputted by the respective method:
@@ -249,6 +250,7 @@ class ThermoCorrections(ReactionModelWrapper):
             #rate expressions via the thermodynamic derivations.
 
             atoms = atoms_dict[gas]
+
             therm = IdealGasThermo(
                     freq_dict[gas], geometry, 
                     atoms=atoms, symmetrynumber=symmetry, 
@@ -753,6 +755,7 @@ class ThermoCorrections(ReactionModelWrapper):
         # no hbond correction for simple_electrochemical
 
         # correct TS energies with beta*voltage (and hbonding?)
+        
         for TS in TS_names:
             rxn_index = self.get_rxn_index_from_TS(TS)
             if rxn_index in self.rxn_options_dict['beta'].keys():

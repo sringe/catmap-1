@@ -249,7 +249,7 @@ def interaction_function(coverages,energies,interaction_vector,F,include_derivat
 #        print 's',s
         idxs, max_cvg, F_params = site_info_dict[s]
         # HACK!
-        hack_list = [10] # idx of H*
+        hack_list = [5] # idx of H*
         if hack_list:
             cvgs = [coverages[j] for j in idxs if j not in hack_list]
         else:
