@@ -872,13 +872,13 @@ class ThermoCorrections(ReactionModelWrapper):
         num_O = get_composition(formula.split('_s')[0]).setdefault('O',0)
         num_ketone = num_O - num_OH
         if num_ketone < 0:
-            print "(number of O) - (number of OH) is negative??"
+            print("(number of O) - (number of OH) is negative??")
             assert(False)
         if formula in ["OH_s", "OH"]:
             corr = -0.50
         else:
             corr = -0.25 * num_OH + -0.10 * num_ketone
-        print "estimated hbond correction for", formula, "is", corr
+        print("estimated hbond correction for {formula:s} is {corr:s}".format(formula=formula, corr=corr))
         return corr
 
     def hbond_with_estimates_electrochemical(self):
