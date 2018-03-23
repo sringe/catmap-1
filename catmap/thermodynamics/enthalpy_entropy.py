@@ -137,7 +137,6 @@ class ThermoCorrections(ReactionModelWrapper):
             #add this to the full dictionary of energies:
             add_dict_in_place(correction_dict, thermo_dict)
 
-
         if self.pressure_mode:
             getattr(self,self.pressure_mode+'_pressure')()
         
@@ -175,6 +174,7 @@ class ThermoCorrections(ReactionModelWrapper):
                 KH_gas = self.species_definitions[spec].get('kH', 55.)  # defaults to no correction
                 P_gas = C_H2O / KH_gas
                 P_corr = np.log(P_gas) * self._kB * self.temperature
+                #correction_dict[spec] = 0.0 #correction_dict[gas_spec] + P_corr
                 correction_dict[spec] = correction_dict[gas_spec] + P_corr
 
         # Generate energy for fake echem transition states after all other corrections
@@ -268,6 +268,9 @@ class ThermoCorrections(ReactionModelWrapper):
             self._enthalpy_dict[gas] = H
             self._entropy_dict[gas] = S
 
+        #    for key in thermo_dict:
+        #        thermo_dict[key]*=0.0
+#
         return thermo_dict
 
     def shomate_gas(self):
@@ -372,6 +375,7 @@ class ThermoCorrections(ReactionModelWrapper):
             self._zpe_dict[gas] = ZPE
             self._enthalpy_dict[gas] = 0
             self._entropy_dict[gas] = S
+        #    thermo_dict[gas]=0.0
         return thermo_dict
 
     def frozen_fixed_entropy_gas(self):
@@ -393,6 +397,7 @@ class ThermoCorrections(ReactionModelWrapper):
             self._enthalpy_dict[gas] = 0
             self._entropy_dict[gas] = 0
             thermo_dict[gas] = ZPE
+         #   thermo_dict[gas] = 0.0
         return thermo_dict
 
     def frozen_gas(self):
@@ -428,6 +433,7 @@ class ThermoCorrections(ReactionModelWrapper):
             self._enthalpy_dict[gas] = enthalpy
             self._entropy_dict[gas] = entropy
             thermo_dict[gas] = ZPE + enthalpy - self.temperature*entropy
+         #   thermo_dict[gas] = 0.0
         return thermo_dict
 
     def harmonic_adsorbate(self):
@@ -702,7 +708,6 @@ class ThermoCorrections(ReactionModelWrapper):
                 if ads in E_to_G_dict:
                     E_to_G += E_to_G_dict[ads]
             return E_to_G
-
         for echem_TS in echem_TS_names:
             preamble, site = echem_TS.split('_')
             echem, rxn_index, barrier = preamble.split('-')
@@ -710,6 +715,8 @@ class ThermoCorrections(ReactionModelWrapper):
             rxn = self.elementary_rxns[rxn_index]
             if rxn_index in self.rxn_options_dict['beta'].keys():
                 beta = float(self.rxn_options_dict['beta'][rxn_index])
+            else:
+                beta = self.beta
             IS = rxn[0]
             FS = rxn[-1]
             E_IS = self.get_state_energy(IS, self._electronic_energy_dict)
@@ -742,10 +749,14 @@ class ThermoCorrections(ReactionModelWrapper):
         thermo_dict = {}
         gas_names = [gas for gas in self.gas_names if gas.split('_')[0] in ['pe', 'ele']]
 
+
         TS_names = [TS for TS in self.transition_state_names if
             'pe' in TS.split('_')[0] or 'ele' in TS.split('_')[0]]
+
+
         voltage = self.voltage #- self.Ustern #substract here the potential at the Stern plane, if defined at input
         voltage_ref = self.extrapolated_potential
+#        voltage -= voltage_ref
         beta = self.beta
 
         # scale pe thermo correction by voltage (vs RHE)
@@ -755,15 +766,21 @@ class ThermoCorrections(ReactionModelWrapper):
         # no hbond correction for simple_electrochemical
 
         # correct TS energies with beta*voltage (and hbonding?)
-        
         for TS in TS_names:
             rxn_index = self.get_rxn_index_from_TS(TS)
             if rxn_index in self.rxn_options_dict['beta'].keys():
                 beta = float(self.rxn_options_dict['beta'][rxn_index])
+            else:
+                beta = self.beta
+            #we subtract the barrier extrapolated reference potential here
+            #note that this is just the potential at which the TS energies were extrapolated.
+            #IS and FS energies are still referenced to voltage = 0, meaning
+            #that free energy differences are still referenced to voltage = 0
+            #this means we have to correct the difference TS-IS = beta * (voltage-voltage_ref)
             thermo_dict[TS] = - voltage * (1 - beta) - beta * voltage_ref
+            #self.temperature=300
             if self.potential_reference_scale=='RHE':
-                thermo_dict[TS] -= beta*.0592*self.pH/298.14*self.temperature
-
+                thermo_dict[TS] -= beta*.0592*self.pH #/298.14*self.temperature
         return thermo_dict
 
     def homogeneous_field(self):
