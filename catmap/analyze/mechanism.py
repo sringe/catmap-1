@@ -263,6 +263,7 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                     if method!=1:
                         self.draw(ax)
 
+<<<<<<< Updated upstream
         if method!=0:
             print ' '*90
             print '%'*90
@@ -288,7 +289,6 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
             print 'END PRINTING ENERGIES'
             print '%'*90
             print ' '*90
-            
 
         if method!=1:
             if self.energy_type == 'free_energy':
