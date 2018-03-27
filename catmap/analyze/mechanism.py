@@ -5,6 +5,14 @@ from catmap.functions import convert_formation_energies
 from graphviz import Digraph
 from itertools import chain, product
 import sys
+import imp
+try:
+    imp.find_module('tabulate')
+    found_tabulate = True
+except ImportError:
+    found_tabulate = False
+if found_tabulate:
+    from tabulate import tabulate
 
 class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
     """
@@ -27,10 +35,11 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                     'kwarg_dict':{}}
         self._rxm.update(defaults)
         self.data_dict = {}
+        self.data_print_dict = {}
         MechanismPlot.__init__(self,[0])
 
     def plot(self,ax=None,plot_variants=None,mechanisms=None,
-            labels=None,save=True):
+            labels=None,save=True,method=0):
         """
         Generates the potential energy diagram plot
 
@@ -49,17 +58,22 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                            Read in from model.rxn_mechanisms by default
         :type mechanisms: {string:[int]}
 
+        :method:        0: only plot FED
+                        1: only print FED 
+                        2: plot and print FED
+
         :param labels: Labels for each state.  Can be generated automatically
         :type labels: [string]
 
         :param save: Whether to write plot to file
         :type save: bool
         """
-        if not ax:
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-        else:
-            fig = ax.get_figure()
+        if method!=1:
+            if not ax:
+                fig = plt.figure()
+                ax = fig.add_subplot(111)
+            else:
+                fig = ax.get_figure()
         if not mechanisms:
             mechanisms = self.rxn_mechanisms.values()
         if not plot_variants and self.descriptor_dict:
@@ -150,6 +164,7 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                     self.energies = [0]
                     self.barriers = []
                     self.labels = ['']
+                    self.rxn_species = []
                     if len(plot_variants) > 1:
                         self.energy_line_args['color'] = \
                                 self.barrier_line_args['color'] = \
@@ -158,7 +173,7 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                         self.energy_line_args['color'] = \
                                 self.barrier_line_args['color'] = \
                                 self.plot_variant_colors[n]
-                    for step in mech:
+                    for istep,step in enumerate(mech):
 
                         if str(step).startswith('half'):
                             step = int(step.replace('half',''))
@@ -179,11 +194,9 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                             species = self.elementary_rxns[step-1][0]
                             L = self.label_maker(species)
                             self.labels.append(L)
-
                         else:
                             nrg = p[0]
                             bar = p[1]
-
                             species = self.elementary_rxns[step-1][-1]
                             L = self.label_maker(species)
                             if split:
@@ -195,48 +208,103 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                                 L = ' '+L #add padding back.
                             self.labels.append(L)
 
+                            if method!=0:
+                                ij=-1
+                                tmp=[]
+                                #iterates over all parts of the current reaction
+                                #meaning iteration goes over educt, ts and product
+                                for ipp,pp in enumerate(self.elementary_rxns[step-1]):
+                                    #iterates over all chemicals contained in educt, ts or product
+                                    for ipp2,pp2 in enumerate(pp):
+                                        if pp2 not in ['H_g','ele_g','OH_g','t','s','H2O_g']:
+                                            ij+=1
+                                            tmp_str=''
+                                            if ipp==1 and ipp2==0:
+                                                tmp_str+=' -> '
+                                            if ipp==2 and ipp2==0:
+                                                tmp_str+=' -> '
+                                            if ipp2>0:
+                                                tmp_str+=' + '
+                                            tmp_str+=pp2
+                                            tmp.append(tmp_str)
+                                tmp=''.join(tmp)
+                                self.rxn_species.append(tmp)
                         if split == False:
                             self.energies.append(nrg)
                             self.barriers.append(bar)
                         elif split == True:
                             self.energies.append(0.5*nrg)
                             self.barriers.append(0) #split steps cannot have barriers.
-
                     if labels and self.include_labels:
                         self.labels = labels
                     elif self.labels and self.include_labels:
                         pass
                     else:
                         self.labels = []
-
                     for e, e_a,rxn in zip(self.energies[1:],self.barriers,mech):
                         if rxn < 0:
                             reverse = True
                             rxn = rxn*-1
                         else:
                             reverse = False
-                    self.data_dict[list(self.rxn_mechanisms.keys())[n]] = [self.energies,
+                    self.data_dict[list(self.rxn_mechanisms.keys())[n]] = [self.energies[1:],
                             self.barriers]
+                    if method!=0:
+                        if variant not in self.data_print_dict:
+                            self.data_print_dict[variant]={list(self.rxn_mechanisms.keys())[n]:None}
+                        self.data_print_dict[variant][list(self.rxn_mechanisms.keys())[n]]=\
+                                [self.rxn_species,self.energies[1:],self.barriers]
 
                     kwargs = self.kwarg_list[n]
                     for key in kwargs:
                         setattr(self,key,kwargs[key])
                     
                     self.initial_energy += self.line_offset
-                    self.draw(ax)
+                    if method!=1:
+                        self.draw(ax)
 
-        if self.energy_type == 'free_energy':
-            ax.set_ylabel('$\Delta G$ [eV]')
-        elif self.energy_type == 'potential_energy':
-            ax.set_ylabel('$\Delta E$ [eV]')
-        if self.energy_type == 'interacting_energy':
-            ax.set_ylabel('$\Delta G_{interacting}$ [eV]')
-        fig.subplots_adjust(**self.subplots_adjust_kwargs)
-        MapPlot.save(self,fig,
-                save=save,default_name=self.model_name+'_pathway.pdf')
-        self._fig = fig
-        self._ax = ax
-        return fig
+        if method!=0:
+            print ' '*90
+            print '%'*90
+            print 'FREE ENERGIES AND BARRIERS OF REACTIONS'
+            for i, variant in enumerate(plot_variants):
+                print 'Descriptor = ',variant
+                print '-'*90
+                printed_data=[]
+                to_print=[]
+                data=self.data_print_dict[variant]
+                for rxn in data:
+                    dd=data[rxn]
+                    dd=map(list, zip(*dd))
+                    for a,b,c in dd:
+                        if a not in printed_data:
+                            printed_data.append(a)
+                            to_print.append([a,b,c])
+                if found_tabulate:
+                    print tabulate(to_print,headers=['Reaction','Delta Free Energy (eV)','Kinetic Barrier (eV)'])
+                else:
+                    for a,b,c in to_print:
+                        print a,b,c
+            print 'END PRINTING ENERGIES'
+            print '%'*90
+            print ' '*90
+            
+
+        if method!=1:
+            if self.energy_type == 'free_energy':
+                ax.set_ylabel('$\Delta G$ [eV]')
+            elif self.energy_type == 'potential_energy':
+                ax.set_ylabel('$\Delta E$ [eV]')
+            if self.energy_type == 'interacting_energy':
+                ax.set_ylabel('$\Delta G_{interacting}$ [eV]')
+            fig.subplots_adjust(**self.subplots_adjust_kwargs)
+            MapPlot.save(self,fig,
+                    save=save,default_name=self.model_name+'_pathway.pdf')
+            self._fig = fig
+            self._ax = ax
+            return fig
+        else:
+            return None
 
     def label_maker(self,species):
         """
