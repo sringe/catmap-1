@@ -10,7 +10,7 @@ import re
 from .data import regular_expressions
 string2symbols = catmap.string2symbols
 pickle = catmap.pickle
-plt = catmap.plt
+#plt = catmap.plt
 from catmap import griddata
 
 class ReactionModel:
@@ -59,7 +59,6 @@ class ReactionModel:
                 'solver','mapper']
         self._solved = None
         #keeps track of whether or not the model was solved
-
         #attributes for logging
         self._log_lines = []
         self._log_dict = {}
@@ -126,6 +125,10 @@ class ReactionModel:
             #This is NOT idiot proof.
             self.model_name = self.setup_file.rsplit('.',1)[0]
             self.load(self.setup_file)
+        #print 'before'
+        #import matplotlib.pyplot as plt
+        #plt.plot([1,2])
+        #plt.show()
        
     # Functions for executing the kinetic model
 
@@ -372,6 +375,7 @@ class ReactionModel:
                 interaction_fitting_mode=None,
                 potential_reference_scale='SHE',
                 extrapolated_potential = 0.0,
+                voltage_diff_drop = 0.0,
                 decimal_precision = 75,
                 verbose = 1,
                 data_file = 'data.pkl')

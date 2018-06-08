@@ -243,6 +243,9 @@ class TableParser(ParserBase):
             else:
                 return []
 
+        for k in self.species_definitions.keys():
+            if 'type' not in self.species_definitions[k]:
+                print('no key type of self.species_definitions[k] for species {}'.format(self.species_definitions[k]))
         all_ads = [k for k in self.species_definitions.keys()
                    if self.species_definitions[k]['type'] != 'site']
 

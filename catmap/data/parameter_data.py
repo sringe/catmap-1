@@ -87,6 +87,10 @@ shomate_params['HCOOH_g:298-1500'] = [3.8027523042252258,
 
 
 #Define default ideal gas parameters
+#first is symmetry number (how many possible rotations (not reflections) lead to 
+#  indistinguishable conformation)
+#second is linear or nonlinear
+#third is spin
 ideal_gas_params = {
         'H2_g':[2,'linear',0],
         'N2_g':[2,'linear',0],
@@ -96,6 +100,7 @@ ideal_gas_params = {
         'CH4_g':[12,'nonlinear',0],
         'NH3_g':[3,'nonlinear',0],
         'CH3OH_g':[1,'nonlinear',0],
+        'CH4O2_g':[2,'nonlinear',0], #methanediol
         'CH3CH2OH_g':[1,'nonlinear',0],
         'CO2_g':[2,'linear',0],
         'CH2O_g':[2,'nonlinear',0],

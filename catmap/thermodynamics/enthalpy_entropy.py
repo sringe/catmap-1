@@ -10,6 +10,8 @@ import sys
 import warnings
 from mpmath import mpf
 from math import exp, log
+from ase.atoms import Atoms
+
 IdealGasThermo = catmap.IdealGasThermo
 HarmonicThermo = catmap.HarmonicThermo
 HinderedThermo = catmap.HinderedThermo
@@ -217,6 +219,8 @@ class ThermoCorrections(ReactionModelWrapper):
 
         gas_renames = {'CH2O_g':'H2CO_g'}
 
+#        extra_gases=['CH4O2_g','CH2O-_g']
+#        extra_numbers=[4, 6, 6, 1, 1, 1, 1]
 
         ase_atoms_dict = {}
         for gas in self.gas_names:
@@ -227,11 +231,19 @@ class ThermoCorrections(ReactionModelWrapper):
             try:
                 ase_atoms_dict[gas] = molecule(atom_name)
             except (NotImplementedError, KeyError):
+                #if gas in extra_gases:
+                #    try:
+                #        ase_atoms_dict[gas]=Atoms(gas.replace('_g','').replace('-',''),pbc=False)
+                #    except:
+                #        pass
                 pass
+
 
         ase_atoms_dict.update(self.atoms_dict)
         self.atoms_dict = ase_atoms_dict
         atoms_dict = self.atoms_dict
+
+
 
         for gas in gas_names:
             # Hard coding corrections for fictitious gas molecules used in echem
@@ -756,7 +768,9 @@ class ThermoCorrections(ReactionModelWrapper):
 
         voltage = self.voltage #- self.Ustern #substract here the potential at the Stern plane, if defined at input
         voltage_ref = self.extrapolated_potential
+        #potential drop inside the cell which does not contribute to chemical reaction driving potential
 #        voltage -= voltage_ref
+        voltage -= self.voltage_diff_drop
         beta = self.beta
 
         # scale pe thermo correction by voltage (vs RHE)
@@ -777,7 +791,13 @@ class ThermoCorrections(ReactionModelWrapper):
             #IS and FS energies are still referenced to voltage = 0, meaning
             #that free energy differences are still referenced to voltage = 0
             #this means we have to correct the difference TS-IS = beta * (voltage-voltage_ref)
-            thermo_dict[TS] = - voltage * (1 - beta) - beta * voltage_ref
+#            thermo_dict[TS] = - (voltage) * (1 - beta) - beta * voltage_ref
+            #1) shift TS energy because we also shift IS energy
+            #   by voltage (does not change activation energy)
+            #2) add the activation energy dependence on voltage
+            thermo_dict[TS] =\
+                    - voltage\
+                    + beta * (voltage - voltage_ref)
             #self.temperature=300
             if self.potential_reference_scale=='RHE':
                 thermo_dict[TS] -= beta*.0592*self.pH #/298.14*self.temperature

@@ -84,7 +84,8 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
             plot_variants = np.linspace(v_min, v_max, 5)
         if not self.plot_variant_colors:
             self.plot_variant_colors = get_colors(max(len(plot_variants),len(mechanisms)))
-
+        
+        gas_energies={}
         self.kwarg_list = []
         for key in self.rxn_mechanisms.keys():
             self.kwarg_list.append(self.kwarg_dict.get(key,{}))
@@ -160,6 +161,9 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                         if valid == False:
                             raise UserWarning('No coverages found for '+str(xy)+' in map')
                     
+                    for sp in energy_dict:
+                        if '_g' in sp and sp not in gas_energies:
+                            gas_energies[sp]=energy_dict[sp]
                     params = self.adsorption_to_reaction_energies(energy_dict)
                     self.energies = [0]
                     self.barriers = []
@@ -254,7 +258,6 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                             self.data_print_dict[variant]={list(self.rxn_mechanisms.keys())[n]:None}
                         self.data_print_dict[variant][list(self.rxn_mechanisms.keys())[n]]=\
                                 [self.rxn_species,self.energies[1:],self.barriers]
-
                     kwargs = self.kwarg_list[n]
                     for key in kwargs:
                         setattr(self,key,kwargs[key])
@@ -264,31 +267,42 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                         self.draw(ax)
 
         if method!=0:
-            print ' '*90
-            print '%'*90
-            print 'FREE ENERGIES AND BARRIERS OF REACTIONS'
-            for i, variant in enumerate(plot_variants):
-                print 'Descriptor = ',variant
-                print '-'*90
-                printed_data=[]
-                to_print=[]
-                data=self.data_print_dict[variant]
-                for rxn in data:
-                    dd=data[rxn]
-                    dd=map(list, zip(*dd))
-                    for a,b,c in dd:
-                        if a not in printed_data:
-                            printed_data.append(a)
-                            to_print.append([a,b,c])
-                if found_tabulate:
-                    print tabulate(to_print,headers=['Reaction','Delta Free Energy (eV)','Kinetic Barrier (eV)'])
-                else:
-                    for a,b,c in to_print:
-                        print a,b,c
-            print 'END PRINTING ENERGIES'
-            print '%'*90
-            print ' '*90
-            
+            with open('FED_gas.txt','w') as outfile:
+                outfile.write(' '*90+'\n')
+                outfile.write('%'*90+'\n')
+                outfile.write('FREE ENERGIES OF GAS SPECIES\n')
+                for sp in gas_energies:
+                    outfile.write('{} {}\n'.format(sp,gas_energies[sp]))
+                outfile.write('END PRINTING GAS ENERGIES\n')
+                outfile.write('%'*90+'\n')
+                outfile.write(' '*90+'\n')
+
+
+            with open('FED_rxn.txt','w') as outfile:
+                outfile.write(' '*90+'\n')
+                outfile.write('%'*90+'\n')
+                outfile.write('FREE ENERGIES AND BARRIERS OF REACTIONS\n')
+                for i, variant in enumerate(plot_variants):
+                    outfile.write('Descriptor = {}\n'.format(variant))
+                    outfile.write('-'*90+'\n')
+                    printed_data=[]
+                    to_print=[]
+                    data=self.data_print_dict[variant]
+                    for rxn in data:
+                        dd=data[rxn]
+                        dd=map(list, zip(*dd))
+                        for a,b,c in dd:
+                            if a not in printed_data:
+                                printed_data.append(a)
+                                to_print.append([a,b,c])
+                    if found_tabulate:
+                        outfile.write(tabulate(to_print,headers=['Reaction','Delta Free Energy (eV)','Kinetic Barrier (eV)']))
+                    else:
+                        for a,b,c in to_print:
+                            outfile.write('{} {} {}'.format(a,b,c))
+                outfile.write('END PRINTING ENERGIES\n')
+                outfile.write('%'*90+'\n')
+                outfile.write(' '*90+'\n')
 
         if method!=1:
             if self.energy_type == 'free_energy':
