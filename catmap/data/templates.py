@@ -253,7 +253,7 @@ def interaction_function(coverages,energies,interaction_vector,F,include_derivat
         # HACK!
         #6 for simplified
         #11 for full
-        hack_list = [6] #[11] #[10] # [5] # idx of H*
+        hack_list = [11] #[3] #[10] # [5] # idx of H*
         if hack_list:
             cvgs = [coverages[j] for j in idxs if j not in hack_list]
         else:
