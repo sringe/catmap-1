@@ -656,6 +656,7 @@ class MechanismPlot:
                 for i,width in enumerate(energy_line_widths)]
         self.energy_lines = energy_lines
         for i,line in enumerate(energy_lines):
+            print 'ENERGY',i,line,energy_line_args[i]
             ax.plot(*line,**energy_line_args[i])
 
         #create barrier lines
