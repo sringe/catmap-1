@@ -39,7 +39,7 @@ def griddata(*args, **kwargs):
         return mlab_griddata(*args, **kwargs)
 
 import mpmath as mp
-from ase.atoms import string2symbols
+from ase.symbols import string2symbols
 from ase.thermochemistry import IdealGasThermo, HarmonicThermo, HinderedThermo
 from ase.structure import molecule
 from catmap.model import ReactionModel

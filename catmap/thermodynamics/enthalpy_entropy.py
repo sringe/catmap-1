@@ -801,6 +801,27 @@ class ThermoCorrections(ReactionModelWrapper):
             #self.temperature=300
             if self.potential_reference_scale=='RHE':
                 thermo_dict[TS] -= beta*.0592*self.pH #/298.14*self.temperature
+
+        return thermo_dict
+
+    def surface_charge_density(self):
+        """
+        Add surface charge density dependence
+        """
+        thermo_dict = self.simple_electrochemical()
+        voltage = self.voltage - 0.0592 * self.pH
+        Upzc = self.Upzc
+        #this is x,y with x = potential and y = sigma (muC/cm^2)
+        data_sigma=np.loadtxt('sigma_relation.txt')
+        p=np.interp1d(data_sigma[:,0],data_sigma[:,1])
+        sigma=p(voltage)
+        for ads in self.adsorbate_names + self.transition_state_names:
+            if 'sigma_params' in self.species_definitions[ads]:
+                c1,c2 = self.species_definitions[ads]['sigma_params']
+                if ads in thermo_dict:
+                    thermo_dict[ads] += c1*sigma + c2*sigma**2
+                else:
+                    thermo_dict[ads] = c1*sigma + c2*sigma**2
         return thermo_dict
 
     def homogeneous_field(self):
@@ -817,10 +838,9 @@ class ThermoCorrections(ReactionModelWrapper):
             if 'field_params' in self.species_definitions[ads]:
                 mu,alpha = self.species_definitions[ads]['field_params']
                 if ads in thermo_dict:
-                    thermo_dict[ads] += mu*field + alpha*(field)**2
+                    thermo_dict[ads] += mu*field - 0.5 * alpha*(field)**2
                 else:
-                    thermo_dict[ads] = mu*field + alpha*(field)**2
-
+                    thermo_dict[ads] = mu*field - 0.5 *  alpha*(field)**2
         return thermo_dict
 
     def local_field_electrochemical(self):
