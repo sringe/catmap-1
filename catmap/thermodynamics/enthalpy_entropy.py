@@ -11,6 +11,7 @@ import warnings
 from mpmath import mpf
 from math import exp, log
 from ase.atoms import Atoms
+from scipy.interpolate import interp1d
 
 IdealGasThermo = catmap.IdealGasThermo
 HarmonicThermo = catmap.HarmonicThermo
@@ -804,20 +805,37 @@ class ThermoCorrections(ReactionModelWrapper):
 
         return thermo_dict
 
+    def read_comsol(self,fname):
+        data=[]
+        for line in open(fname,'r'):
+            if not line.startswith('%'):
+                ls=line.split()
+                data.append([float(ls[0]),float(ls[-1])])
+        data=np.array(data)
+        return data
+
     def surface_charge_density(self):
         """
         Add surface charge density dependence
         """
         thermo_dict = self.simple_electrochemical()
-        voltage = self.voltage - 0.0592 * self.pH
-        Upzc = self.Upzc
+        if self.potential_reference_scale == 'SHE':
+            voltage = self.voltage
+        elif self.potential_reference_scale == 'RHE':
+            voltage = self.voltage - 0.0592 * self.pH
         #this is x,y with x = potential and y = sigma (muC/cm^2)
-        data_sigma=np.loadtxt('sigma_relation.txt')
-        p=np.interp1d(data_sigma[:,0],data_sigma[:,1])
-        sigma=p(voltage)
+        if type(self.sigma_input)==str:
+            data_sigma=self.read_comsol(self.sigma_input)
+            p=interp1d(data_sigma[:,0],data_sigma[:,1])
+            sigma=p(voltage)
+        elif type(self.sigma_input)==float:
+            sigma=self.sigma_input
+        else:
+            p=np.poly1d(self.sigma_input)
+            sigma=p(voltage)
         for ads in self.adsorbate_names + self.transition_state_names:
             if 'sigma_params' in self.species_definitions[ads]:
-                c1,c2 = self.species_definitions[ads]['sigma_params']
+                c2,c1,c0 = self.species_definitions[ads]['sigma_params']
                 if ads in thermo_dict:
                     thermo_dict[ads] += c1*sigma + c2*sigma**2
                 else:

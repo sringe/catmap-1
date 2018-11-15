@@ -60,7 +60,6 @@ class VectorMap(MapPlot, ReactionModelWrapper):
 
         if not include_indices:
             include_indices = list(range(0,len(list(cols))))
-
         if not self.include_empty:
             for i,col in enumerate(cols):
                 if max([abs(c) for c in col]) <= self.threshold:

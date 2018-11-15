@@ -14,6 +14,8 @@ class MatrixMap(VectorMap):
         if not mapp:
             raise AttributeError('No output found for ' + self.plot_variable)
         pts,datas = zip(*mapp)
+        if hasattr(self._rxm.resolution, '__iter__') and self._rxm.resolution[1] == 1:
+            pts = [[first] for first, second in pts]
         cols = []
         for page in zip(*datas):
             cols += list(zip(*page))

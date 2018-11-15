@@ -100,11 +100,8 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                 elif 'voltage' in self.descriptor_names:
                     voltage_idx = self.descriptor_names.index('voltage')
                     xy = [0, 0]
-                    print 'set xy',xy
-                    print 'set2',voltage_idx,variant
                     xy[voltage_idx] = variant
                     xy[1-voltage_idx] = self.descriptor_ranges[1-voltage_idx][0]
-                    print 'new xy',xy
                 else:
                     xy = variant
                 if '-' not in xy:
@@ -159,8 +156,6 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                         cvg_labels = self.output_labels['interacting_energy']
                         valid = False
                         for pt, cvgs in self.coverage_map:
-                            print 'cvg_labels',pt,xy
-                            print 'cvg',zip(cvg_labels,cvgs)
                             if pt == xy:
                                 valid = True
                                 for ads,cvg in zip(cvg_labels, cvgs):
