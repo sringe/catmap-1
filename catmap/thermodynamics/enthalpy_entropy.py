@@ -185,6 +185,15 @@ class ThermoCorrections(ReactionModelWrapper):
             echem_thermo_dict = self.generate_echem_TS_energies()
             add_dict_in_place(correction_dict, echem_thermo_dict)
 
+        #with open('/scratch/users/sringe/transport/catint2/examples/CO_reduction_CATMAP/test_xinyans_model_h2o_donor_pH13/tmplog.txt','w') as of:
+        #    of.write('begin\n')
+        #    #of.write('keys: {}\n'.format([ads for ads in self.species_definitions_keys()]))
+        #    print 'thest',self.species_definitions_keys()
+
+        #    for a in self.species_definitions_keys():
+        #        of.write('{} {}\n'.format(a,self._electronic_energy_dict[a] + self._correction_dict[a]))
+        #sys.exit()
+
         return correction_dict
 
     def ideal_gas(self):
