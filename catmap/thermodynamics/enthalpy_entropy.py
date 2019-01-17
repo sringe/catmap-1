@@ -132,7 +132,6 @@ class ThermoCorrections(ReactionModelWrapper):
         self._frequency_dict = frequency_dict
 
         # apply corrections in self.thermodynamic_corrections on top of each other
-#        print 'before',correction_dict['H2_g']
         for correction in self.thermodynamic_corrections:
             mode = getattr(self,correction+'_thermo_mode')
             #current dictionary that is outputted by the respective method:
@@ -142,7 +141,7 @@ class ThermoCorrections(ReactionModelWrapper):
 
         if self.pressure_mode:
             getattr(self,self.pressure_mode+'_pressure')()
-        
+
         #set H_g, OH_g and _dl species correction energies:
         if 'electrochemical' in l:
             correction_dict = self._get_echem_corrections(correction_dict)
@@ -182,17 +181,26 @@ class ThermoCorrections(ReactionModelWrapper):
 
         # Generate energy for fake echem transition states after all other corrections
         if len(self.echem_transition_state_names) > 0:
+            #save H and OH correction dicts:
+            G_H_save=correction_dict['H_g']
+            G_OH_save=correction_dict['OH_g']
+            #reset G_H and G_OH, they should NOT depend on pH here
+            #because the TS is calculated here from the BEP scaling
+            #but BEP scaling should be done with delta mu_0 (no concentrations considered)
+            #the concentrations only need to be considered for the free energies
+            #
+            G_H2 = self._electronic_energy_dict['H2_g'] + self._correction_dict['H2_g']
+            G_H = 0.5*G_H2
+            G_H2O = self._electronic_energy_dict['H2O_g'] + self._correction_dict['H2O_g']
+            H2O_index = self.gas_names.index('H2O_g')
+            G_OH = G_H2O - G_H
+            correction_dict['H_g'] = G_H
+            correction_dict['OH_g'] = G_OH
             echem_thermo_dict = self.generate_echem_TS_energies()
             add_dict_in_place(correction_dict, echem_thermo_dict)
-
-        #with open('/scratch/users/sringe/transport/catint2/examples/CO_reduction_CATMAP/test_xinyans_model_h2o_donor_pH13/tmplog.txt','w') as of:
-        #    of.write('begin\n')
-        #    #of.write('keys: {}\n'.format([ads for ads in self.species_definitions_keys()]))
-        #    print 'thest',self.species_definitions_keys()
-
-        #    for a in self.species_definitions_keys():
-        #        of.write('{} {}\n'.format(a,self._electronic_energy_dict[a] + self._correction_dict[a]))
-        #sys.exit()
+            #correct back
+            correction_dict['H_g']=G_H_save
+            correction_dict['OH_g']=G_OH_save
 
         return correction_dict
 
@@ -746,7 +754,26 @@ class ThermoCorrections(ReactionModelWrapper):
             G_IS = E_IS + get_E_to_G(IS, self._correction_dict)
             G_FS = E_FS + get_E_to_G(FS, self._correction_dict)
             dG = G_FS - G_IS
-            G_TS = G_FS + float(barrier) + (1 - beta) *  -dG  # only tested for reductions
+
+            #SR: comment on this procedure
+            #-- the following calculation of the TS energy relative to IS
+            #-- is based on this equation:
+            # !! G_TS^0 = G_IS^0 + kB T ln(gamma_TS) + beta * delta mu^0
+            # !!        = G_IS^0 + barrier + beta * (G_FS^0-G_IS^0) !!
+            #-- where the "0" refers to standard state (pH=0)
+            # the G_IS^0 defines the reference point, beta * delta mu^0
+            # is the scaling, so choosing some point between IS and FS
+            # and barrier gives the point above the scaled IS and FS
+            #-- this should generally work for all systems
+            #-- G_IS and G_FS are then afterwards shifted by the actual pH in case of and SHE reference
+
+            G_TS = G_FS + float(barrier) + (1 - beta) *  -dG
+
+            #SR: RHE as a reference scale
+            #-- IS and FS are no invariant with pH
+            #-- but deltaa mu^0 does now depend
+            if self.potential_reference_scale=='RHE':
+                G_TS -= beta*.0592*self.pH
             # make sure we're "correcting" the right value
             assert(self._electronic_energy_dict[echem_TS]) == 0.
             self._correction_dict[echem_TS] = 0.
@@ -788,7 +815,6 @@ class ThermoCorrections(ReactionModelWrapper):
             thermo_dict[gas] = -voltage
 
         # no hbond correction for simple_electrochemical
-
         # correct TS energies with beta*voltage (and hbonding?)
         for TS in TS_names:
             rxn_index = self.get_rxn_index_from_TS(TS)
@@ -822,6 +848,31 @@ class ThermoCorrections(ReactionModelWrapper):
                 data.append([float(ls[0]),float(ls[-1])])
         data=np.array(data)
         return data
+
+    def hbond_surface_charge_density(self):
+        thermo_dict = self.hbond_electrochemical()
+        if self.potential_reference_scale == 'SHE':
+            voltage = self.voltage
+        elif self.potential_reference_scale == 'RHE':
+            voltage = self.voltage - 0.0592 * self.pH
+        #this is x,y with x = potential and y = sigma (muC/cm^2)
+        if type(self.sigma_input)==str:
+            data_sigma=self.read_comsol(self.sigma_input)
+            p=interp1d(data_sigma[:,0],data_sigma[:,1])
+            sigma=p(voltage)
+        elif type(self.sigma_input)==float:
+            sigma=self.sigma_input
+        else:
+            p=np.poly1d(self.sigma_input)
+            sigma=p(voltage)
+        for ads in self.adsorbate_names + self.transition_state_names:
+            if 'sigma_params' in self.species_definitions[ads]:
+                c2,c1,c0 = self.species_definitions[ads]['sigma_params']
+                if ads in thermo_dict:
+                    thermo_dict[ads] += c1*sigma + c2*sigma**2
+                else:
+                    thermo_dict[ads] = c1*sigma + c2*sigma**2
+        return thermo_dict
 
     def surface_charge_density(self):
         """
@@ -925,7 +976,6 @@ class ThermoCorrections(ReactionModelWrapper):
                     thermo_dict[ads] += hbond_dict[ads.split('_')[0]]
                 else:
                     thermo_dict[ads] = hbond_dict[ads.split('_')[0]]
-
         return thermo_dict
 
     def estimate_hbond_corr(formula):

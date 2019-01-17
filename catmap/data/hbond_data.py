@@ -9,6 +9,7 @@ def generate_hbond_dict():
          'CO'     : CO,
          'CHO'    : CO,
          'CH2O'   : 0.,
+         'CO2'    : 0.,
          'OCH3'   : 0.,
          'O'      : 0.,
          'OH'     : OH,

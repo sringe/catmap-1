@@ -76,6 +76,7 @@ class ScalerBase(ReactionModelWrapper):
 
         if 'electronic_energy' in self.output_variables:
             electronic_energy_dict = self.get_electronic_energies(descriptors)
+            print 'settting',electronic_energy_dict
             self._electronic_energy = [electronic_energy_dict[a] 
                     for a in ads]
             self.output_labels['electronic_energy'] = ads
