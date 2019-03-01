@@ -860,18 +860,23 @@ class ThermoCorrections(ReactionModelWrapper):
             data_sigma=self.read_comsol(self.sigma_input)
             p=interp1d(data_sigma[:,0],data_sigma[:,1])
             sigma=p(voltage)
+            print('Using a sigma of = {}'.format(sigma))
         elif type(self.sigma_input)==float:
             sigma=self.sigma_input
+        elif type(self.sigma_input)==list and self.sigma_input[0]=='CH':
+            #use fixed Helmholtz capacitance
+            sigma=float(self.sigma_input[1])*(voltage-self.Upzc)
         else:
             p=np.poly1d(self.sigma_input)
             sigma=p(voltage)
         for ads in self.adsorbate_names + self.transition_state_names:
             if 'sigma_params' in self.species_definitions[ads]:
-                c2,c1,c0 = self.species_definitions[ads]['sigma_params']
+                z = self.species_definitions[ads]['sigma_params']
+                p = np.poly1d(z)
                 if ads in thermo_dict:
-                    thermo_dict[ads] += c1*sigma + c2*sigma**2
+                    thermo_dict[ads] += p(sigma)-z[-1] #c1*sigma + c2*sigma**2
                 else:
-                    thermo_dict[ads] = c1*sigma + c2*sigma**2
+                    thermo_dict[ads] = p(sigma)-z[-1] #c1*sigma + c2*sigma**2
         return thermo_dict
 
     def surface_charge_density(self):
@@ -885,21 +890,27 @@ class ThermoCorrections(ReactionModelWrapper):
             voltage = self.voltage - 0.0592 * self.pH
         #this is x,y with x = potential and y = sigma (muC/cm^2)
         if type(self.sigma_input)==str:
+            #use comsol data files sigma-v
             data_sigma=self.read_comsol(self.sigma_input)
             p=interp1d(data_sigma[:,0],data_sigma[:,1])
             sigma=p(voltage)
         elif type(self.sigma_input)==float:
+            #use fixed value for sigma
             sigma=self.sigma_input
+        elif type(self.sigma_input)==list and self.sigma_input[0]=='CH':
+            #use fixed Helmholtz capacitance
+            sigma=float(self.sigma_input[1])*(voltage-self.Upzc)
         else:
             p=np.poly1d(self.sigma_input)
             sigma=p(voltage)
         for ads in self.adsorbate_names + self.transition_state_names:
             if 'sigma_params' in self.species_definitions[ads]:
-                c2,c1,c0 = self.species_definitions[ads]['sigma_params']
+                z = self.species_definitions[ads]['sigma_params']
+                p = np.poly1d(z)
                 if ads in thermo_dict:
-                    thermo_dict[ads] += c1*sigma + c2*sigma**2
+                    thermo_dict[ads] += p(sigma)-z[-1] #c1*sigma + c2*sigma**2
                 else:
-                    thermo_dict[ads] = c1*sigma + c2*sigma**2
+                    thermo_dict[ads] = p(sigma)-z[-1] #c1*sigma + c2*sigma**2
         return thermo_dict
 
     def homogeneous_field(self):
