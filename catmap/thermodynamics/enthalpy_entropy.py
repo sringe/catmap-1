@@ -808,11 +808,15 @@ class ThermoCorrections(ReactionModelWrapper):
         #potential drop inside the cell which does not contribute to chemical reaction driving potential
 #        voltage -= voltage_ref
         voltage -= self.voltage_diff_drop
+
+        voltage -= voltage_ref
+
         beta = self.beta
 
         # scale pe thermo correction by voltage (vs RHE)
         for gas in gas_names:
             thermo_dict[gas] = -voltage
+
 
         # no hbond correction for simple_electrochemical
         # correct TS energies with beta*voltage (and hbonding?)
@@ -833,7 +837,7 @@ class ThermoCorrections(ReactionModelWrapper):
             #2) add the activation energy dependence on voltage
             thermo_dict[TS] =\
                     - voltage\
-                    + beta * (voltage - voltage_ref)
+                    + beta * voltage #- voltage_ref)
             #self.temperature=300
             if self.potential_reference_scale=='RHE':
                 thermo_dict[TS] -= beta*.0592*self.pH #/298.14*self.temperature
