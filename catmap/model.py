@@ -125,10 +125,6 @@ class ReactionModel:
             #This is NOT idiot proof.
             self.model_name = self.setup_file.rsplit('.',1)[0]
             self.load(self.setup_file)
-        #print 'before'
-        #import matplotlib.pyplot as plt
-        #plt.plot([1,2])
-        #plt.show()
        
     # Functions for executing the kinetic model
 

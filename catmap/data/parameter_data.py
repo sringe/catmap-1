@@ -99,6 +99,10 @@ ideal_gas_params = {
         'CO_g':[1,'linear',0],
         'CH4_g':[12,'nonlinear',0],
         'NH3_g':[3,'nonlinear',0],
+        'N2O_g':[2,'nonlinear',0],
+        'NH2OH_g':[1,'nonlinear',0],
+        'NO_g':[2,'linear',0],
+        'N2_g':[2,'linear',0],
         'CH3OH_g':[1,'nonlinear',0],
         'CH4O2_g':[2,'nonlinear',0], #methanediol
         'CH3CH2OH_g':[1,'nonlinear',0],

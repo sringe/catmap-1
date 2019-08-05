@@ -68,6 +68,7 @@ class TableParser(ParserBase):
                              'are specified: '+' '.join(self.required_headers))
         linedicts = []
         for L in lines:
+            print 'reading line',L
             linedict = {}
             for k, v in zip(headers, 
                     L.split(self._separator, len(headers))):
@@ -75,8 +76,16 @@ class TableParser(ParserBase):
             if len(linedict) != len(headers):
                 print("Input line " + str(linedict) + " does not have all required fields.  Ignoring.")
                 continue
+            print '%'*15
+            for s in self.species_definitions:
+                print 'species name:',s
+                print self.species_definitions[s]
+                print 'type',self.species_definitions[s].get('type',None)
+                if self.species_definitions[s].get('type',None) == 'site':
+                    print 'site_name in species_definitions[s][site_names]',linedict['site_name'] in self.species_definitions[s]['site_names']
+            print '%'*15
             sites = [s for s in self.species_definitions if
-                    self.species_definitions[s].get('type',None) == 'site' and 
+                    self.species_definitions[s].get('type',None) == 'site' and
                     linedict['site_name'] in 
                     self.species_definitions[s]['site_names']
                     and '*' not in s]

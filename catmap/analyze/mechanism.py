@@ -87,13 +87,12 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
             plot_variants = np.linspace(v_min, v_max, 5)
         if not self.plot_variant_colors:
             self.plot_variant_colors = get_colors(max(len(plot_variants),len(mechanisms)))
-        
         gas_energies={}
         self.kwarg_list = []
         for key in self.rxn_mechanisms.keys():
             self.kwarg_list.append(self.kwarg_dict.get(key,{}))
-
         for n,mech in enumerate(mechanisms):
+            #use mat
             for i, variant in enumerate(plot_variants):
                 if self.descriptor_dict:
                     xy = self.descriptor_dict[variant]
@@ -177,11 +176,13 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                                 self.barrier_line_args['color'] = \
                                 self.plot_variant_colors[i]
                     else:
-                        self.energy_line_args['color'] = \
+                        try:
+                            self.energy_line_args['color'] = \
                                 self.barrier_line_args['color'] = \
                                 self.plot_variant_colors[n]
+                        except:
+                            self.energy_line_args['color']='k'
                     for istep,step in enumerate(mech):
-
                         if str(step).startswith('half'):
                             step = int(step.replace('half',''))
                             split = True
@@ -268,9 +269,14 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                     self.initial_energy += self.line_offset
                     if method!=1:
                         self.draw(ax)
-
         if method!=0:
-            with open('FED_gas.txt','w') as outfile:
+            add=''
+            if self.pressure_correction:
+                add+='_pressure_correction'
+            if self.coverage_correction:
+                add+='_coverage_correction'
+
+            with open('FED_gas'+add+'.txt','w') as outfile:
                 outfile.write(' '*90+'\n')
                 outfile.write('%'*90+'\n')
                 outfile.write('FREE ENERGIES OF GAS SPECIES\n')
@@ -281,7 +287,7 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                 outfile.write(' '*90+'\n')
 
 
-            with open('FED_rxn.txt','w') as outfile:
+            with open('FED'+add+'.txt','w') as outfile:
                 outfile.write(' '*90+'\n')
                 outfile.write('%'*90+'\n')
                 outfile.write('FREE ENERGIES AND BARRIERS OF REACTIONS\n')
@@ -302,7 +308,7 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                         outfile.write(tabulate(to_print,headers=['Reaction','Delta Free Energy (eV)','Kinetic Barrier (eV)']))
                     else:
                         for a,b,c in to_print:
-                            outfile.write('{} {} {}'.format(a,b,c))
+                            outfile.write('{} {} {}\n'.format(a,b,c))
                 outfile.write('END PRINTING ENERGIES\n')
                 outfile.write('%'*90+'\n')
                 outfile.write(' '*90+'\n')

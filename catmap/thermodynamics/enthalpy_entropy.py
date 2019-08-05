@@ -12,6 +12,7 @@ from mpmath import mpf
 from math import exp, log
 from ase.atoms import Atoms
 from scipy.interpolate import interp1d
+from ase.io import read
 
 IdealGasThermo = catmap.IdealGasThermo
 HarmonicThermo = catmap.HarmonicThermo
@@ -134,17 +135,30 @@ class ThermoCorrections(ReactionModelWrapper):
         # apply corrections in self.thermodynamic_corrections on top of each other
         for correction in self.thermodynamic_corrections:
             mode = getattr(self,correction+'_thermo_mode')
+            if 'reversible_kinetics_electrochemical' in mode:
+                #do this below after adding the electrochemical corrections
+                #because we need these (importantly adds free energy corrs
+                #to H2 which need to be considered in the reversible potential
+                continue
             #current dictionary that is outputted by the respective method:
             thermo_dict = getattr(self,mode)()
             #add this to the full dictionary of energies:
             add_dict_in_place(correction_dict, thermo_dict)
 
+
         if self.pressure_mode:
             getattr(self,self.pressure_mode+'_pressure')()
+
 
         #set H_g, OH_g and _dl species correction energies:
         if 'electrochemical' in l:
             correction_dict = self._get_echem_corrections(correction_dict)
+        if 'electrochemical' in self.thermodynamic_corrections and \
+                'reversible_kinetics_electrochemical' in self.electrochemical_thermo_mode:
+            self._correction_dict=correction_dict
+            mode=getattr(self,'electrochemical_thermo_mode')
+            thermo_dict = getattr(self,mode)()
+            add_dict_in_place(correction_dict, thermo_dict)
         return correction_dict
 
     def _get_echem_corrections(self, correction_dict):
@@ -237,8 +251,21 @@ class ThermoCorrections(ReactionModelWrapper):
 
         gas_renames = {'CH2O_g':'H2CO_g'}
 
-#        extra_gases=['CH4O2_g','CH2O-_g']
+        extra_gases=['NH2OH_g','N2O_g']
 #        extra_numbers=[4, 6, 6, 1, 1, 1, 1]
+
+        def set_gas_name(gas):
+            prop=None
+            if gas in extra_gases:
+                try:
+                    prop=Atoms(gas.replace('_g','').replace('-',''),pbc=False)
+                    if gas=='NH2OH_g':
+                        prop=read('/home/ringe/projects/NOR_FeNC/NH2OH.traj') #/home/ringe/archive_sherlock/GAS/NH2OH_gas/relax_ase_bfgs/BFGS.traj')
+                    elif gas=='N2O_g':
+                        prop=read('/home/ringe/projects/NOR_FeNC/N2O.traj')
+                except:
+                    pass
+            return prop
 
         ase_atoms_dict = {}
         for gas in self.gas_names:
@@ -249,18 +276,13 @@ class ThermoCorrections(ReactionModelWrapper):
             try:
                 ase_atoms_dict[gas] = molecule(atom_name)
             except (NotImplementedError, KeyError):
-                #if gas in extra_gases:
-                #    try:
-                #        ase_atoms_dict[gas]=Atoms(gas.replace('_g','').replace('-',''),pbc=False)
-                #    except:
-                #        pass
                 pass
 
-
+            if gas in extra_gases:
+                ase_atoms_dict[gas]=set_gas_name(gas)
         ase_atoms_dict.update(self.atoms_dict)
         self.atoms_dict = ase_atoms_dict
         atoms_dict = self.atoms_dict
-
 
 
         for gas in gas_names:
@@ -278,9 +300,7 @@ class ThermoCorrections(ReactionModelWrapper):
             #Pressures should not be used in microkinetic 
             #modelling; they are implicitly included in the 
             #rate expressions via the thermodynamic derivations.
-
             atoms = atoms_dict[gas]
-
             therm = IdealGasThermo(
                     freq_dict[gas], geometry, 
                     atoms=atoms, symmetrynumber=symmetry, 
@@ -297,7 +317,6 @@ class ThermoCorrections(ReactionModelWrapper):
             self._zpe_dict[gas] = ZPE
             self._enthalpy_dict[gas] = H
             self._entropy_dict[gas] = S
-
         #    for key in thermo_dict:
         #        thermo_dict[key]*=0.0
 #
@@ -805,11 +824,13 @@ class ThermoCorrections(ReactionModelWrapper):
 
         voltage = self.voltage #- self.Ustern #substract here the potential at the Stern plane, if defined at input
         voltage_ref = self.extrapolated_potential
+
         #potential drop inside the cell which does not contribute to chemical reaction driving potential
 #        voltage -= voltage_ref
         voltage -= self.voltage_diff_drop
 
         voltage -= voltage_ref
+
 
         beta = self.beta
 
@@ -844,6 +865,92 @@ class ThermoCorrections(ReactionModelWrapper):
 
         return thermo_dict
 
+    def reversible_kinetics_electrochemical(self):
+        """
+        Calculate electrochemical (potential) corrections to free energy.
+        Use method from dx.doi.org/10.1021/jz3021155
+        i.e. reference all reaction steps to to their reversible potential
+        """
+        #we start by doing the same thing as before  in generate_echem_TS_energies
+        #we loop over all transition states, this procedue gives us also 
+        #acess to the reversible potential
+
+        #echem_TS_names = self.echem_transition_state_names
+        TS_names = [TS for TS in self.transition_state_names if
+            'pe' in TS.split('_')[0] or 'ele' in TS.split('_')[0]]
+        voltage = self.voltage
+        thermo_dict = {}
+
+        def get_E_to_G(state, E_to_G_dict):
+            E_to_G = 0.
+            for ads in state:
+                if ads in E_to_G_dict:
+                    E_to_G += E_to_G_dict[ads]
+            return E_to_G
+        pot_rev={}
+        for echem_TS in TS_names:
+            preamble, site = echem_TS.split('_')
+            #echem, rxn_index, barrier = preamble.split('-')
+            rxn_index=self.get_rxn_index_from_TS(echem_TS)
+            rxn_index = int(rxn_index)
+            rxn = self.elementary_rxns[rxn_index]
+            IS = rxn[0]
+            FS = rxn[-1]
+            #remove voltage dependence!! we need dG at zero V
+            #MISSING THERMO CORRECTIONS FOR H2!!!!!!!
+            E_IS = self.get_state_energy(IS, self._electronic_energy_dict)
+            E_FS = self.get_state_energy(FS, self._electronic_energy_dict)
+            G_IS = E_IS + get_E_to_G(IS, self._correction_dict)
+            G_FS = E_FS + get_E_to_G(FS, self._correction_dict)
+            dG = G_FS - G_IS
+
+            pot_rev[echem_TS]=-dG
+#        print 'THE REVERSIBLE POTENTIALS',pot_rev
+
+        #2nd part, regular electrochemistry
+        thermo_dict = {}
+        gas_names = [gas for gas in self.gas_names if gas.split('_')[0] in ['pe', 'ele']]
+
+
+
+
+        voltage = self.voltage #- self.Ustern #substract here the potential at the Stern plane, if defined at input
+
+        self.beta=0.5
+        beta = self.beta
+
+        # scale pe thermo correction by voltage (vs RHE)
+        for gas in gas_names:
+            thermo_dict[gas] = -voltage
+
+
+        # no hbond correction for simple_electrochemical
+        # correct TS energies with beta*voltage (and hbonding?)
+        for TS in TS_names:
+            rxn_index = self.get_rxn_index_from_TS(TS)
+            if rxn_index in self.rxn_options_dict['beta'].keys():
+                beta = float(self.rxn_options_dict['beta'][rxn_index])
+            else:
+                beta = self.beta
+            #we subtract the barrier extrapolated reference potential here
+            #note that this is just the potential at which the TS energies were extrapolated.
+            #IS and FS energies are still referenced to voltage = 0, meaning
+            #that free energy differences are still referenced to voltage = 0
+            #this means we have to correct the difference TS-IS = beta * (voltage-voltage_ref)
+#            thermo_dict[TS] = - (voltage) * (1 - beta) - beta * voltage_ref
+            #1) shift TS energy because we also shift IS energy
+            #   by voltage (does not change activation energy)
+            #2) add the activation energy dependence on voltage
+            thermo_dict[TS] =\
+                    - voltage\
+                    + beta * (voltage-pot_rev[TS]) + self.fixed_barrier
+            #- voltage_ref)
+            #self.temperature=300
+            if self.potential_reference_scale=='RHE':
+                thermo_dict[TS] -= beta*.0592*self.pH #/298.14*self.temperature
+
+        return thermo_dict
+
     def read_comsol(self,fname):
         data=[]
         for line in open(fname,'r'):
@@ -866,6 +973,40 @@ class ThermoCorrections(ReactionModelWrapper):
             sigma=p(voltage)
             print('Using a sigma of = {}'.format(sigma))
         elif type(self.sigma_input)==float:
+            sigma=self.sigma_input
+        elif type(self.sigma_input)==list and self.sigma_input[0]=='CH':
+            #use fixed Helmholtz capacitance
+            sigma=float(self.sigma_input[1])*(voltage-self.Upzc)
+        else:
+            p=np.poly1d(self.sigma_input)
+            sigma=p(voltage)
+        for ads in self.adsorbate_names + self.transition_state_names:
+            if 'sigma_params' in self.species_definitions[ads]:
+                z = self.species_definitions[ads]['sigma_params']
+                p = np.poly1d(z)
+                if ads in thermo_dict:
+                    thermo_dict[ads] += p(sigma)-z[-1] #c1*sigma + c2*sigma**2
+                else:
+                    thermo_dict[ads] = p(sigma)-z[-1] #c1*sigma + c2*sigma**2
+        return thermo_dict
+
+    def surface_charge_density_reversible_kinetics_electrochemical(self):
+        """
+        Add surface charge density dependence
+        """
+        thermo_dict = self.reversible_kinetics_electrochemical()
+        if self.potential_reference_scale == 'SHE':
+            voltage = self.voltage
+        elif self.potential_reference_scale == 'RHE':
+            voltage = self.voltage - 0.0592 * self.pH
+        #this is x,y with x = potential and y = sigma (muC/cm^2)
+        if type(self.sigma_input)==str:
+            #use comsol data files sigma-v
+            data_sigma=self.read_comsol(self.sigma_input)
+            p=interp1d(data_sigma[:,0],data_sigma[:,1])
+            sigma=p(voltage)
+        elif type(self.sigma_input)==float:
+            #use fixed value for sigma
             sigma=self.sigma_input
         elif type(self.sigma_input)==list and self.sigma_input[0]=='CH':
             #use fixed Helmholtz capacitance

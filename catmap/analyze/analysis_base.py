@@ -20,18 +20,27 @@ basic_colors = [[0,0,0],[0,0,1],[0.1,1,0.1],[1,0,0],[0,1,1],[1,0.5,0],[1,0.9,0],
                 [1,0,1],[0,0.5,0.5],[0.5,0.25,0.15],[0.5,0.5,0.5]]
                #black,blue,green,red,cyan,orange,yellow,magenta,turquoise,brown,gray
 
-def get_colors(n_colors):
+new_colors=['C'+str(i) for i in range(10)]
+
+def get_colors(n_colors,version='new'):
     """
     Get n colors from basic_colors.
 
     :param n_colors: Number of colors
     :type n_colors: int
     """
-    if n_colors <len(basic_colors):
-        return basic_colors[0:n_colors]
-    else:
-        longlist= basic_colors*n_colors
-        return longlist[0:n_colors]
+    if version=='old':
+        if n_colors <len(basic_colors):
+            return basic_colors[0:n_colors]
+        else:
+            longlist= basic_colors*n_colors
+            return longlist[0:n_colors]
+    elif version=='new':
+        if n_colors <len(new_colors):
+            return new_colors[0:n_colors]
+        else:
+            longlist= new_colors*n_colors
+            return longlist[0:n_colors]
 
 def boltzmann_vector(energy_list,vector_list,temperature):
     """
@@ -600,7 +609,7 @@ class MechanismPlot:
         self.energy_mode ='relative' #absolute
         self.energy_line_widths = 0.5
 
-    def draw(self, ax=None):
+    def draw(self, ax=None,color=None):
         """
         Draw the potential energy diagram
 
@@ -706,6 +715,7 @@ class MechanismPlot:
             xpos = sum(energy_lines[i][0])/len(energy_lines[i][0])
             label_position = label_positions[i]
             args = label_args[i]
+            save=None
             if label_position in ['top','ymax']:
                 if 'ha' not in args:
                     args['ha'] = 'left'
@@ -733,7 +743,15 @@ class MechanismPlot:
                     args['ha'] = 'left'
                 if 'va' not in args:# and 'textcoords' not in args:
                     args['va'] = 'bottom'
-                ax.annotate(label,[xpos,ypos],**args)
+                if type(args['va'])==float:
+                    ypos += args['va']
+                    save=args['va']
+                    del args['va']
+                an1=ax.annotate(label,[xpos,ypos],**args)
+                an1.draggable()
+            if save is not None:
+                args['va']=save
+
 
 class ScalingPlot:
     """
