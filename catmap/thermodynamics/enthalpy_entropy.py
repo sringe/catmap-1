@@ -13,6 +13,7 @@ from math import exp, log
 from ase.atoms import Atoms
 from scipy.interpolate import interp1d
 from ase.io import read
+from scipy.optimize import fsolve
 
 IdealGasThermo = catmap.IdealGasThermo
 HarmonicThermo = catmap.HarmonicThermo
@@ -100,7 +101,9 @@ class ThermoCorrections(ReactionModelWrapper):
         """
         Calculate all ``thermodynamic'' corrections beyond the energies
         in the input file. This master function will call sub-functions
-        depending on the ``thermo mode'' of each class of species
+        depending on the ``thermo mode'' of each class of species.
+        The function is called during each run and the main functions
+        for all following corrections.
         """
         l = self.thermodynamic_corrections
         if 'electrochemical' in l:
@@ -145,10 +148,8 @@ class ThermoCorrections(ReactionModelWrapper):
             #add this to the full dictionary of energies:
             add_dict_in_place(correction_dict, thermo_dict)
 
-
         if self.pressure_mode:
             getattr(self,self.pressure_mode+'_pressure')()
-
 
         #set H_g, OH_g and _dl species correction energies:
         if 'electrochemical' in l:
@@ -829,7 +830,7 @@ class ThermoCorrections(ReactionModelWrapper):
 #        voltage -= voltage_ref
         voltage -= self.voltage_diff_drop
 
-        voltage -= voltage_ref
+#        voltage -= voltage_ref
 
 
         beta = self.beta
@@ -858,7 +859,7 @@ class ThermoCorrections(ReactionModelWrapper):
             #2) add the activation energy dependence on voltage
             thermo_dict[TS] =\
                     - voltage\
-                    + beta * voltage #- voltage_ref)
+                    + beta * (voltage - voltage_ref)
             #self.temperature=300
             if self.potential_reference_scale=='RHE':
                 thermo_dict[TS] -= beta*.0592*self.pH #/298.14*self.temperature
@@ -875,7 +876,8 @@ class ThermoCorrections(ReactionModelWrapper):
         #we loop over all transition states, this procedue gives us also 
         #acess to the reversible potential
 
-        #echem_TS_names = self.echem_transition_state_names
+        #get all electrochemical transition states
+
         TS_names = [TS for TS in self.transition_state_names if
             'pe' in TS.split('_')[0] or 'ele' in TS.split('_')[0]]
         voltage = self.voltage
@@ -897,7 +899,6 @@ class ThermoCorrections(ReactionModelWrapper):
             IS = rxn[0]
             FS = rxn[-1]
             #remove voltage dependence!! we need dG at zero V
-            #MISSING THERMO CORRECTIONS FOR H2!!!!!!!
             E_IS = self.get_state_energy(IS, self._electronic_energy_dict)
             E_FS = self.get_state_energy(FS, self._electronic_energy_dict)
             G_IS = E_IS + get_E_to_G(IS, self._correction_dict)
@@ -905,6 +906,8 @@ class ThermoCorrections(ReactionModelWrapper):
             dG = G_FS - G_IS
 
             pot_rev[echem_TS]=-dG
+
+
 #        print 'THE REVERSIBLE POTENTIALS',pot_rev
 
         #2nd part, regular electrochemistry
@@ -944,11 +947,16 @@ class ThermoCorrections(ReactionModelWrapper):
             thermo_dict[TS] =\
                     - voltage\
                     + beta * (voltage-pot_rev[TS]) + self.fixed_barrier
+
+            #3) add H_g thermo correction, since initial state is also lifted by this and this would 
+            # introduce a change in the barrier
+
+            thermo_dict[TS] += self._correction_dict['H2_g']/2
+
             #- voltage_ref)
             #self.temperature=300
             if self.potential_reference_scale=='RHE':
                 thermo_dict[TS] -= beta*.0592*self.pH #/298.14*self.temperature
-
         return thermo_dict
 
     def read_comsol(self,fname):
@@ -990,30 +998,37 @@ class ThermoCorrections(ReactionModelWrapper):
                     thermo_dict[ads] = p(sigma)-z[-1] #c1*sigma + c2*sigma**2
         return thermo_dict
 
+    def sigma(self,sigma_input,voltage):
+        if type(sigma_input)==str:
+            #use comsol data files sigma-v
+            data_sigma=self.read_comsol(sigma_input)
+            p=interp1d(data_sigma[:,0],data_sigma[:,1])
+            sigma=p(voltage)
+        elif type(sigma_input)==float:
+            #use fixed value for sigma
+            sigma=sigma_input
+        elif type(sigma_input)==list and sigma_input[0]=='CH':
+            #use fixed Helmholtz capacitance
+            sigma=float(sigma_input[1])*(voltage-self.Upzc)
+        else:
+            p=np.poly1d(sigma_input)
+            sigma=p(voltage)
+        return sigma
+
     def surface_charge_density_reversible_kinetics_electrochemical(self):
         """
         Add surface charge density dependence
         """
+        #1) create electrochemical barriers
         thermo_dict = self.reversible_kinetics_electrochemical()
+        #2) modify energies by charging
         if self.potential_reference_scale == 'SHE':
             voltage = self.voltage
         elif self.potential_reference_scale == 'RHE':
             voltage = self.voltage - 0.0592 * self.pH
+        #sigma is always on SHE scale
+        sigma = self.sigma(self.sigma_input,self.voltage)
         #this is x,y with x = potential and y = sigma (muC/cm^2)
-        if type(self.sigma_input)==str:
-            #use comsol data files sigma-v
-            data_sigma=self.read_comsol(self.sigma_input)
-            p=interp1d(data_sigma[:,0],data_sigma[:,1])
-            sigma=p(voltage)
-        elif type(self.sigma_input)==float:
-            #use fixed value for sigma
-            sigma=self.sigma_input
-        elif type(self.sigma_input)==list and self.sigma_input[0]=='CH':
-            #use fixed Helmholtz capacitance
-            sigma=float(self.sigma_input[1])*(voltage-self.Upzc)
-        else:
-            p=np.poly1d(self.sigma_input)
-            sigma=p(voltage)
         for ads in self.adsorbate_names + self.transition_state_names:
             if 'sigma_params' in self.species_definitions[ads]:
                 z = self.species_definitions[ads]['sigma_params']
@@ -1022,6 +1037,80 @@ class ThermoCorrections(ReactionModelWrapper):
                     thermo_dict[ads] += p(sigma)-z[-1] #c1*sigma + c2*sigma**2
                 else:
                     thermo_dict[ads] = p(sigma)-z[-1] #c1*sigma + c2*sigma**2
+        #3) correct reversible potentials and barriers for charging and modify barriers accordingly
+        def get_E_to_G(state, E_to_G_dict):
+            E_to_G = 0.
+            for ads in state:
+                if ads in E_to_G_dict:
+                    E_to_G += E_to_G_dict[ads]
+            return E_to_G
+        TS_names = [TS for TS in self.transition_state_names if
+            'pe' in TS.split('_')[0] or 'ele' in TS.split('_')[0]]
+        beta = self.beta
+        pot_rev={}
+        for TS in TS_names:
+            print 'Working on ',TS
+            preamble, site = TS.split('_')
+            #echem, rxn_index, barrier = preamble.split('-')
+            rxn_index=self.get_rxn_index_from_TS(TS)
+            rxn_index = int(rxn_index)
+            rxn = self.elementary_rxns[rxn_index]
+            IS = rxn[0]
+            FS = rxn[-1]
+            #first determine dG
+            E_IS = self.get_state_energy(IS, self._electronic_energy_dict)
+            E_FS = self.get_state_energy(FS, self._electronic_energy_dict)
+            G_IS = E_IS + get_E_to_G(IS, self._correction_dict)
+            G_FS = E_FS + get_E_to_G(FS, self._correction_dict)
+            dG = G_FS - G_IS
+            oldrevpot=-dG
+            #now we need to solve the equation 
+            #dG - phi + da_sigma *sigma(phi)+db_sigma*sigma^2(phi) = 0 for phi
+            #or in terms of a charging function
+            #dG - phi + p_FS(sigma(phi))-p_IS(sigma(phi)) = 0
+            #to get the charging corrected reversible potential of the step
+            #first generate the charging function
+            z_sum = None
+            for ads in IS:
+                if 'sigma_params' in self.species_definitions[ads]:
+                    if z_sum is None:
+                        z_sum=np.zeros_like(self.species_definitions[ads]['sigma_params'])
+                    z = self.species_definitions[ads]['sigma_params']
+                    z_sum -= z
+            for ads in FS:
+                if 'sigma_params' in self.species_definitions[ads]:
+                    if z_sum is None:
+                        z_sum=np.zeros_like(self.species_definitions[ads]['sigma_params'])
+                    z = self.species_definitions[ads]['sigma_params']
+                    z_sum += z
+            if z_sum is None:
+                continue
+            z_sum[-1]=0.0
+            print z_sum
+            p = np.poly1d(z_sum)
+            #now define the reversible potential equation
+            print 'the dG',dG
+            def func(phi):
+                return dG + phi +p(self.sigma(self.sigma_input,phi))
+            #find roots of this function, initial guess it reversible potential
+            revpot=fsolve(func,oldrevpot)[0]
+            print('Charging corrected rev. potential of {} is {}'.format(TS,revpot))
+            #shift echem TS to correct for real reversible potential
+            thermo_dict[TS] += beta * (oldrevpot-revpot)
+
+            #IS is shifted in this routine due to charging, need to shift TS also, so 
+            #that really self.fixed_barrier is the barrier at the reversible potential
+            z_sum= None
+            for ads in IS:
+                if 'sigma_params' in self.species_definitions[ads]:
+                    if z_sum is None:
+                        z_sum=np.zeros_like(self.species_definitions[ads]['sigma_params'])
+                    z = self.species_definitions[ads]['sigma_params']
+                    z_sum += z
+            z_sum[-1]=0.0
+            p = np.poly1d(z_sum)
+            thermo_dict[TS] += p(self.sigma(self.sigma_input,self.voltage))
+
         return thermo_dict
 
     def surface_charge_density(self):
