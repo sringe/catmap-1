@@ -1,6 +1,7 @@
 from .analysis_base import *
 from string import Template
 
+
 class VectorMap(MapPlot, ReactionModelWrapper):
     """
     .. todo:: __doc__
@@ -119,7 +120,10 @@ class VectorMap(MapPlot, ReactionModelWrapper):
             else:
                 ax = None
             fig = self.plot_weighted(mapp,ax=ax,indices=idxs)
+        for ax in plt.gcf().axes:
+            ax.set_aspect('auto')
 
+        plt.tight_layout(h_pad=1)
         self.save(fig,save=save,
                 default_name = self.model_name+'_'+self.plot_variable+'.pdf')
 

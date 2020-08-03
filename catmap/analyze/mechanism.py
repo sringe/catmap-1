@@ -109,9 +109,18 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
 
                     if self.energy_type == 'free_energy':
                         energy_dict = self.scaler.get_free_energies(xy)
+
                     elif self.energy_type == 'potential_energy':
                         energy_dict = self.scaler.get_free_energies(xy)
                         energy_dict.update(self.scaler.get_electronic_energies(xy))
+
+                    elif self.energy_type == 'enthalpy':
+                        energy_dict = self.scaler.get_total_enthalpies(xy)
+
+                    elif self.energy_type == 'entropy':
+                        energy_dict = self.scaler.get_entropies(xy)
+                        for k in energy_dict.keys():
+                            energy_dict[k] *= self.temperature 
 
                     elif self.energy_type == 'interacting_energy':
 
@@ -147,8 +156,10 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                                 if P==0:
                                     print('Pressure is zero, setting it to 1')
                                     P=1
-                                energy_dict[key] += self._kB*self.temperature*log(P)
-                   
+                                if P>0.:
+                                    energy_dict[key] += self._kB*self.temperature*log(P)
+                                else:
+                                    pass
                     if self.coverage_correction == True:
                         if not self.coverage_map:
                             raise UserWarning('No coverage map found.')
@@ -166,6 +177,7 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                     for sp in energy_dict:
                         if '_g' in sp and sp not in gas_energies:
                             gas_energies[sp]=energy_dict[sp]
+                    a = self._enthalpy_dict
                     params = self.adsorption_to_reaction_energies(energy_dict)
                     self.energies = [0]
                     self.barriers = []
@@ -327,6 +339,25 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
             return fig
         else:
             return None
+#new git version
+#                    self.draw(ax)
+#
+#        if self.energy_type == 'free_energy':
+#            ax.set_ylabel('$\Delta G$ [eV]')
+#        elif self.energy_type == 'potential_energy':
+#            ax.set_ylabel('$\Delta E$ [eV]')
+#        elif self.energy_type == 'enthalpy':
+#                    ax.set_ylabel('$\Delta H$ [eV]')
+#        elif self.energy_type == 'entropy':
+#                    ax.set_ylabel('$T\Delta S$ [eV]')            
+#        if self.energy_type == 'interacting_energy':
+#            ax.set_ylabel('$\Delta G_{interacting}$ [eV]')
+#        fig.subplots_adjust(**self.subplots_adjust_kwargs)
+#        MapPlot.save(self,fig,
+#                save=save,default_name=self.model_name+'_pathway.pdf')
+#        self._fig = fig
+#        self._ax = ax
+#        return fig
 
     def label_maker(self,species):
         """
