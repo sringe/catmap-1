@@ -174,7 +174,7 @@ class ThermoCorrections(ReactionModelWrapper):
         are not specific to any particular mode.
         """
         # pH corrections to proton and hydroxide species
-        if any(ads in ['ele_g', 'H_g', 'OH_g'] for ads in self.species_definitions.keys()):
+        if any(ads in ['ele_g', 'H_g', 'OH_g'] for ads in list(self.species_definitions.keys())):
             G_H2 = self._electronic_energy_dict['H2_g'] + self._correction_dict['H2_g']
             if self.potential_reference_scale=='SHE':
                 G_H = 0.5*G_H2 - .0592*self.pH/298.14*self.temperature
@@ -187,8 +187,8 @@ class ThermoCorrections(ReactionModelWrapper):
             correction_dict['OH_g'] = G_OH
 
         # pressure corrections to species in the echem double layer based on kH
-        if 'dl' in self.species_definitions.keys():
-            dl_species = [spec for spec in self.species_definitions.keys()
+        if 'dl' in list(self.species_definitions.keys()):
+            dl_species = [spec for spec in list(self.species_definitions.keys())
                             if '_dl' in spec and '*' not in spec]
             for spec in dl_species:
                 tempname = spec.split('_')[0]
@@ -338,10 +338,10 @@ class ThermoCorrections(ReactionModelWrapper):
 
         # added to avoid unnecessary inner loop ahead
         shomate_params = {}        
-        for _ in self.shomate_params.keys():
+        for _ in list(self.shomate_params.keys()):
             _n = _.split(':')[0].replace('*','')
             T_min, T_max = sorted([float(__) for __ in _.split(':')[1].split('-')])
-            if _n in shomate_params.keys():
+            if _n in list(shomate_params.keys()):
                 shomate_params[_n] += [{'params':self.shomate_params[_],'T_min':T_min,'T_max':T_max}]
             else:
                 shomate_params[_n] = [{'params':self.shomate_params[_],'T_min':T_min,'T_max':T_max}]
@@ -349,7 +349,7 @@ class ThermoCorrections(ReactionModelWrapper):
         thermo_dict = {}
         not_there = []
         for gas in gas_names:
-            if gas in shomate_params.keys():
+            if gas in list(shomate_params.keys()):
                 params = shomate_params[gas]
                 loc = [_ for _ in [_ if ((temperature>=params[_]['T_min'] and temperature<=params[_]['T_max']) or\
                              (temperature<params[_]['T_min'] and params[_]['T_min']<300)) else None for _ in range(len(params))] if _ is not None]
@@ -369,8 +369,8 @@ class ThermoCorrections(ReactionModelWrapper):
                     self._entropy_dict[gas] = dS
                     thermo_dict[gas] = free_energy
                 else:
-                    print(shomate_params.keys)
-                    print(shomate_params[gas])
+                    print((shomate_params.keys))
+                    print((shomate_params[gas]))
                     raise ValueError('No Shomate parameters available for T = {}  specified for {}'.format(temperature,gas))
             else:
                 not_there.append(gas)
@@ -397,7 +397,7 @@ class ThermoCorrections(ReactionModelWrapper):
                 ZPE = 0.5*sum(freq_dict[gas])
             else:
                 ZPE = 0
-            if gas in entropy_dict.keys():
+            if gas in list(entropy_dict.keys()):
                 S = entropy_dict[gas]
             else:
                 S = entropy_dict['other']
@@ -456,7 +456,7 @@ class ThermoCorrections(ReactionModelWrapper):
             species_def = self.species_definitions[gas]
             for key in ['zero_point_energy','enthalpy','entropy']:
                 if key not in species_def:
-                    print('Warning: No '+key+' found for '+gas+'. Using 0')
+                    print(('Warning: No '+key+' found for '+gas+'. Using 0'))
             ZPE = species_def.get('zero_point_energy',0)
             enthalpy = species_def.get('enthalpy',0)
             entropy = species_def.get('entropy',0)
@@ -578,10 +578,10 @@ class ThermoCorrections(ReactionModelWrapper):
         
         # added to avoid unnecessary inner loop ahead
         shomate_params = {}        
-        for _ in self.shomate_params.keys():
+        for _ in list(self.shomate_params.keys()):
             _n = _.split(':')[0].replace('*','')
             T_min, T_max = sorted([float(__) for __ in _.split(':')[1].split('-')])
-            if _n in shomate_params.keys():
+            if _n in list(shomate_params.keys()):
                 shomate_params[_n] += [{'params':self.shomate_params[_],'T_min':T_min,'T_max':T_max}]
             else:
                 shomate_params[_n] = [{'params':self.shomate_params[_],'T_min':T_min,'T_max':T_max}]
@@ -846,7 +846,7 @@ class ThermoCorrections(ReactionModelWrapper):
             echem, rxn_index, barrier = preamble.split('-')
             rxn_index = int(rxn_index)
             rxn = self.elementary_rxns[rxn_index]
-            if rxn_index in self.rxn_options_dict['beta'].keys():
+            if rxn_index in list(self.rxn_options_dict['beta'].keys()):
                 beta = float(self.rxn_options_dict['beta'][rxn_index])
             else:
                 beta = self.beta
@@ -927,7 +927,7 @@ class ThermoCorrections(ReactionModelWrapper):
         # correct TS energies with beta*voltage (and hbonding?)
         for TS in TS_names:
             rxn_index = self.get_rxn_index_from_TS(TS)
-            if rxn_index in self.rxn_options_dict['beta'].keys():
+            if rxn_index in list(self.rxn_options_dict['beta'].keys()):
                 beta = float(self.rxn_options_dict['beta'][rxn_index])
             else:
                 beta = self.beta
@@ -1014,7 +1014,7 @@ class ThermoCorrections(ReactionModelWrapper):
         # correct TS energies with beta*voltage (and hbonding?)
         for TS in TS_names:
             rxn_index = self.get_rxn_index_from_TS(TS)
-            if rxn_index in self.rxn_options_dict['beta'].keys():
+            if rxn_index in list(self.rxn_options_dict['beta'].keys()):
                 beta = float(self.rxn_options_dict['beta'][rxn_index])
             else:
                 beta = self.beta
@@ -1062,7 +1062,7 @@ class ThermoCorrections(ReactionModelWrapper):
             data_sigma=self.read_comsol(self.sigma_input)
             p=interp1d(data_sigma[:,0],data_sigma[:,1])
             sigma=p(voltage)
-            print('Using a sigma of = {}'.format(sigma))
+            print(('Using a sigma of = {}'.format(sigma)))
         elif type(self.sigma_input)==float:
             sigma=self.sigma_input
         elif type(self.sigma_input)==list and self.sigma_input[0]=='CH':
@@ -1132,7 +1132,7 @@ class ThermoCorrections(ReactionModelWrapper):
         beta = self.beta
         pot_rev={}
         for TS in TS_names:
-            print 'Working on ',TS
+            print('Working on ',TS)
             preamble, site = TS.split('_')
             #echem, rxn_index, barrier = preamble.split('-')
             rxn_index=self.get_rxn_index_from_TS(TS)
@@ -1169,15 +1169,15 @@ class ThermoCorrections(ReactionModelWrapper):
             if z_sum is None:
                 continue
             z_sum[-1]=0.0
-            print z_sum
+            print(z_sum)
             p = np.poly1d(z_sum)
             #now define the reversible potential equation
-            print 'the dG',dG
+            print('the dG',dG)
             def func(phi):
                 return dG + phi +p(self.sigma(self.sigma_input,phi))
             #find roots of this function, initial guess it reversible potential
             revpot=fsolve(func,oldrevpot)[0]
-            print('Charging corrected rev. potential of {} is {}'.format(TS,revpot))
+            print(('Charging corrected rev. potential of {} is {}'.format(TS,revpot)))
             #shift echem TS to correct for real reversible potential
             thermo_dict[TS] += beta * (oldrevpot-revpot)
 
@@ -1323,7 +1323,7 @@ class ThermoCorrections(ReactionModelWrapper):
             corr = -0.50
         else:
             corr = -0.25 * num_OH + -0.10 * num_ketone
-        print("estimated hbond correction for {formula:s} is {corr:s}".format(formula=formula, corr=corr))
+        print(("estimated hbond correction for {formula:s} is {corr:s}".format(formula=formula, corr=corr)))
         return corr
 
     def hbond_with_estimates_electrochemical(self):
@@ -1351,7 +1351,7 @@ class ThermoCorrections(ReactionModelWrapper):
         reservoirs = getattr(self,'atomic_reservoir_dict',None)
         if reservoirs:
             comp_dict = {}
-            for sp in energy_dict.keys():
+            for sp in list(energy_dict.keys()):
                 comp_dict[sp] = self.species_definitions[sp]['composition']
             energy_dict = self.convert_formation_energies(
                     energy_dict,reservoirs,comp_dict)[0]
@@ -1378,7 +1378,7 @@ class ThermoCorrections(ReactionModelWrapper):
     def static_pressure(self):
         for g in self.gas_names:
             if 'pressure' not in self.species_definitions[g]:
-                print 'Pressure not found for species ',g
+                print('Pressure not found for species ',g)
                 sys.exit()
         self.gas_pressures = [self.species_definitions[g]['pressure'] for g in self.gas_names]
 
@@ -1518,7 +1518,7 @@ class ThermoCorrections(ReactionModelWrapper):
         # Calaculate Equilirium Conversion
         gas_species = self.gas_names
         sps_dict = self.species_definitions
-        n_atoms = max([len(self.species_definitions[_]['composition'].keys()) \
+        n_atoms = max([len(list(self.species_definitions[_]['composition'].keys())) \
                                 for _ in gas_species])
         # Create atomic constraints 
         Aeq = np.zeros([n_atoms,len(gas_species)], dtype=np.float128)
@@ -1530,8 +1530,8 @@ class ThermoCorrections(ReactionModelWrapper):
         for _ in range(len(gas_species)):
             sps = gas_species[_]
             comp = self.species_definitions[sps]['composition']
-            for atom in comp.keys():
-                if atom in atoms.keys():
+            for atom in list(comp.keys()):
+                if atom in list(atoms.keys()):
                     pass
                 else:
                     atoms[atom] = len(atoms)
@@ -1539,11 +1539,11 @@ class ThermoCorrections(ReactionModelWrapper):
                 if hasattr(self,'gas_pressures'):
                         beq[atoms[atom]] += comp[atom]*(self.gas_pressures[_]/self.pressure)#*self.pressure/self.kBT
                         x0[_] = self.gas_pressures[_]/self.pressure
-                elif 'concentration' in sps_dict[sps].keys() and\
+                elif 'concentration' in list(sps_dict[sps].keys()) and\
                     sps_dict[sps]['concentration'] > 0:
                         beq[atoms[atom]] += comp[atom]*sps_dict[sps]['concentration']#*self.pressure/self.kBT
                         x0[_] = sps_dict[sps]['concentration']
-                elif 'pressure' in sps_dict[sps].keys() and\
+                elif 'pressure' in list(sps_dict[sps].keys()) and\
                     sps_dict[sps]['pressure'] > 0:
                         beq[atoms[atom]] += comp[atom]*(sps_dict[sps]['pressure']/self.pressure)#*sps_dict[sps]['pressure']/self.kBT
                         x0[_] = sps_dict[sps]['pressure']/self.pressure
@@ -1589,14 +1589,14 @@ class ThermoCorrections(ReactionModelWrapper):
 
         if not xeq.success and not xeq.status == 4:
             print(xeq)
-            print(Aeq.dot(xeq.x))
+            print((Aeq.dot(xeq.x)))
             print(Aeq)
             print(beq)
-            print(Aeq.dot(xeq.x)-beq)
-            print(sum(xeq.x))
+            print((Aeq.dot(xeq.x)-beq))
+            print((sum(xeq.x)))
             raise Exception()
         
-        return dict(zip(('xeq','x0','Aeq','beq','feq','G0'),(xeq.x, x0, Aeq, beq, xeq.fun, total_gibbs(x0))))
+        return dict(list(zip(('xeq','x0','Aeq','beq','feq','G0'),(xeq.x, x0, Aeq, beq, xeq.fun, total_gibbs(x0)))))
     
     def set_equilibrated(self):
         """ Set reactants/products as their equilibrium composition a priori
@@ -1623,10 +1623,10 @@ class ThermoCorrections(ReactionModelWrapper):
         # Fix specified components at final equilibrium composition and find
         # the initial compositions with minimum change from the initial one 
         # that still satisfied the imposed constraints
-        fix_pos = list(filter(lambda x : isinstance(x,int), [_ if gas_species[_] in self.equilibrated else None \
-                        for _ in range(len(gas_species))]))
+        fix_pos = list([x for x in [_ if gas_species[_] in self.equilibrated else None \
+                        for _ in range(len(gas_species))] if isinstance(x,int)])
         Aeq2 = np.zeros([len(self.equilibrated),len(gas_species)],dtype=np.float128)
-        Aeq2[range(len(self.equilibrated)),fix_pos] = 1.
+        Aeq2[list(range(len(self.equilibrated))),fix_pos] = 1.
         Aeq2 = np.concatenate((Aeq,Aeq2),0)
         beq2 = np.concatenate((beq.flatten(),xeq[fix_pos]),0)
         
@@ -1656,7 +1656,7 @@ class ThermoCorrections(ReactionModelWrapper):
         print('xeq: {}'.format(xeq.x))
         print('xf: {}'.format(xf.x))
         """
-        return dict(zip(('xeq','xf','x0','Aeq','beq','Aeq2','beq2','Geq','Gf','G0'),(xeq, xf.x, x0, Aeq, beq, Aeq2, beq2, Geq, total_gibbs(xf.x),G0)))
+        return dict(list(zip(('xeq','xf','x0','Aeq','beq','Aeq2','beq2','Geq','Gf','G0'),(xeq, xf.x, x0, Aeq, beq, Aeq2, beq2, Geq, total_gibbs(xf.x),G0))))
 
     ##############################################################
     ##############################################################
@@ -1714,7 +1714,7 @@ def fit_shomate(Ts, Cps, Hs, Ss, params0=[], plot_file = None):
     
     if plot_file:
         import pylab as plt
-        print('R2: {}, sumE: {}'.format(np.corrcoef(M.dot([A, B, C, D, E, F, G]),b),(M.dot([A, B, C, D, E, F, G])-b).T.dot(M.dot([A, B, C, D, E, F, G])-b)))
+        print(('R2: {}, sumE: {}'.format(np.corrcoef(M.dot([A, B, C, D, E, F, G]),b),(M.dot([A, B, C, D, E, F, G])-b).T.dot(M.dot([A, B, C, D, E, F, G])-b))))
         fig = plt.figure()
         ax1 = fig.add_subplot(131)
         ax2 = fig.add_subplot(132)

@@ -68,22 +68,22 @@ class TableParser(ParserBase):
                              'are specified: '+' '.join(self.required_headers))
         linedicts = []
         for L in lines:
-            print 'reading line',L
+            print('reading line',L)
             linedict = {}
             for k, v in zip(headers, 
                     L.split(self._separator, len(headers))):
                 linedict[k] = v
             if len(linedict) != len(headers):
-                print("Input line " + str(linedict) + " does not have all required fields.  Ignoring.")
+                print(("Input line " + str(linedict) + " does not have all required fields.  Ignoring."))
                 continue
-            print '%'*15
+            print('%'*15)
             for s in self.species_definitions:
-                print 'species name:',s
-                print self.species_definitions[s]
-                print 'type',self.species_definitions[s].get('type',None)
+                print('species name:',s)
+                print(self.species_definitions[s])
+                print('type',self.species_definitions[s].get('type',None))
                 if self.species_definitions[s].get('type',None) == 'site':
-                    print 'site_name in species_definitions[s][site_names]',linedict['site_name'] in self.species_definitions[s]['site_names']
-            print '%'*15
+                    print('site_name in species_definitions[s][site_names]',linedict['site_name'] in self.species_definitions[s]['site_names'])
+            print('%'*15)
             sites = [s for s in self.species_definitions if
                     self.species_definitions[s].get('type',None) == 'site' and
                     linedict['site_name'] in 
@@ -110,7 +110,7 @@ class TableParser(ParserBase):
 
         self.__dict__.update(kwargs)
        
-        all_ads = [k for k in self.species_definitions.keys()
+        all_ads = [k for k in list(self.species_definitions.keys())
                    if self.species_definitions[k].get('type',None) != 'site']
 
         for adsdef in all_ads:
@@ -119,10 +119,10 @@ class TableParser(ParserBase):
             ads = self.species_definitions[adsdef].get('name',None)
             if ads is None:
                 del self.species_definitions[adsdef]
-                print('Warning: Species with undefined "name" was encountered ('+adsdef+'). '+\
+                print(('Warning: Species with undefined "name" was encountered ('+adsdef+'). '+\
                      'Ensure that all species which are explicitly set in "species_definitions" '+\
                      'are also defined in the reaction network ("rxn_expressions"). This definition '+\
-                     'will be ignored.')
+                     'will be ignored.'))
             else:
                 site = self.species_definitions[adsdef]['site']
                 alternative_names = self.species_definitions[adsdef].get(
@@ -155,7 +155,7 @@ class TableParser(ParserBase):
                                     if linedict[cvg_key] != standard_cvg:
                                         pass_dict[cvg_key] = False
 
-                        if False not in pass_dict.values():
+                        if False not in list(pass_dict.values()):
                             infodict[surf] = linedict
                 
                 paramlist = []
@@ -252,10 +252,10 @@ class TableParser(ParserBase):
             else:
                 return []
 
-        for k in self.species_definitions.keys():
+        for k in list(self.species_definitions.keys()):
             if 'type' not in self.species_definitions[k]:
-                print('no key type of self.species_definitions[k] for species {}'.format(self.species_definitions[k]))
-        all_ads = [k for k in self.species_definitions.keys()
+                print(('no key type of self.species_definitions[k] for species {}'.format(self.species_definitions[k])))
+        all_ads = [k for k in list(self.species_definitions.keys())
                    if self.species_definitions[k]['type'] != 'site']
 
         for adsdef in all_ads+list(allfreqdict.keys()): #format all freqs
@@ -299,7 +299,7 @@ class TableParser(ParserBase):
                 A,B = adsname.split('-')
                 frequency_dict[adsdef] = frequency_dict[A] + frequency_dict[B]
 
-        for key in self.species_definitions.keys():
+        for key in list(self.species_definitions.keys()):
             self.species_definitions[key]['frequencies'] = frequency_dict.get(key,[])
 
     def parse_coverage(self,**kwargs):
@@ -343,13 +343,13 @@ class TableParser(ParserBase):
                                         names_only = [n.split('_')[0] for n in ads_names]
                                         coads_name = coads.split('_')[0]
                                         if coads_name not in names_only:
-                                            print(('Warning: Could not find co-adsorbed species '
-                                                   '{coads:s} (adsorbate {ads:s}). Ignoring this entry.').format(coads=coads,ads=ads))
+                                            print((('Warning: Could not find co-adsorbed species '
+                                                   '{coads:s} (adsorbate {ads:s}). Ignoring this entry.').format(coads=coads,ads=ads)))
                                         else:
                                             idx_j = names_only.index(coads_name)
                                             actual_ads = ads_names[idx_j]
-                                            print(('Warning: Could not find co-adsorbed species '
-                                                '{coads:s} (adsorbate {ads:s}). Using {actual_ads:s}.').format(coads=coads, ads=ads, actual_ads=actual_ads))
+                                            print((('Warning: Could not find co-adsorbed species '
+                                                '{coads:s} (adsorbate {ads:s}). Using {actual_ads:s}.').format(coads=coads, ads=ads, actual_ads=actual_ads)))
                                             theta_vec[idx_j] += theta_j
                         E_diff = float(linedict['formation_energy'])
                         E_int = linedict.get('integral_formation_energy',None)

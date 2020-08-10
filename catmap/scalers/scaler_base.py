@@ -77,7 +77,7 @@ class ScalerBase(ReactionModelWrapper):
 
         if 'electronic_energy' in self.output_variables:
             electronic_energy_dict = self.get_electronic_energies(descriptors)
-            print 'settting',electronic_energy_dict
+            print('settting',electronic_energy_dict)
             self._electronic_energy = [electronic_energy_dict[a] 
                     for a in ads]
             self.output_labels['electronic_energy'] = ads
@@ -161,7 +161,7 @@ class ScalerBase(ReactionModelWrapper):
     def get_total_enthalpies(self,descriptors,**kwargs):
         self.get_free_energies(descriptors,**kwargs)
         energy_dict = self._enthalpy_dict.copy()
-        for _ in energy_dict.keys():
+        for _ in list(energy_dict.keys()):
             energy_dict[_] += self._electronic_energy_dict[_]
         return energy_dict
     
