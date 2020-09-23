@@ -8,10 +8,10 @@ try:
 except:
     norm = None
 from matplotlib.ticker import MaxNLocator
-import os
-import math
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+
 plt = catmap.plt
-pickle= catmap.pickle
+pickle = catmap.pickle
 np = catmap.np
 spline = catmap.spline
 mtransforms = catmap.mtransforms
@@ -120,38 +120,38 @@ class MapPlot:
     :param aspect: 
     :type aspect:
 
-    :param subplots_adjust_kwargs: Dictionary of keyword arguments for adjusting matplotlib subplots
+    :param subplots_adjust_kwargs: Dictionary of keyword arguments for
+        adjusting matplotlib subplots
     :type subplots_adjust_kwargs: dict
 
     .. todo:: Some missing descriptions
     """
     def __init__(self):
-        defaults = dict(
-                resolution_enhancement = 1,
-                min = None,
-                max = None,
-                n_ticks = 8,
-                plot_function = None,
-                colorbar = True,
-                colormap = plt.cm.jet,
-                axis_label_decimals = 2,
-                log_scale = False,
-                descriptor_labels = ['X_descriptor','Y_descriptor'],
-                default_descriptor_pt_args = {'marker':'o'},
-                default_descriptor_label_args = {},
-                descriptor_pt_args = {},
-                descriptor_label_args = {},
-                include_descriptors = False,
-                plot_size = 4,
-                aspect = None,
-                subplots_adjust_kwargs = {'hspace':0.35,'wspace':0.35,
-                    'bottom':0.15}
-                )
+        defaults = dict(resolution_enhancement=1,
+                        min=None,
+                        max=None,
+                        n_ticks=6,
+                        plot_function=None,
+                        colorbar=True,
+                        colormap=plt.cm.YlGnBu_r,
+                        axis_label_decimals=2,
+                        log_scale=False,
+                        descriptor_labels=['X_descriptor', 'Y_descriptor'],
+                        default_descriptor_pt_args={'marker': 'o'},
+                        default_descriptor_label_args={},
+                        descriptor_pt_args={},
+                        descriptor_label_args={},
+                        include_descriptors=False,
+                        plot_size=4,
+                        aspect=None,
+                        subplots_adjust_kwargs={'hspace': 0.35,
+                                                'wspace': 0.35,
+                                                'bottom': 0.15})
 
         for key in defaults:
             val = defaults[key]
-            if not hasattr(self,key):
-                setattr(self,key,val)
+            if not hasattr(self, key):
+                setattr(self, key, val)
             elif getattr(self,key) is None:
                 setattr(self,key,val)
 
@@ -362,15 +362,10 @@ class MapPlot:
                         for lab in cbar_labels]
                 plot.set_clim(min_val,max_val)
                 fig = ax.get_figure()
-                axpos = list(ax.get_position().bounds)
-                xsize = axpos[2]*0.04
-                ysize = axpos[3]
-                xp = axpos[0]+axpos[2]+0.04*axpos[2]
-                yp = axpos[1]
-                cbar_box = [xp,yp,xsize,ysize]
-                cbar_ax = fig.add_axes(cbar_box)
+                divider = make_axes_locatable(ax)
+                cax = divider.append_axes("right", size="5%", pad=0.05)
                 cbar = fig.colorbar(mappable=plot,ticks=cbar_nums,
-                        cax=cbar_ax,extend=plot_args['extend'])
+                        cax=cax,extend=plot_args['extend'])
                 cbar.ax.set_yticklabels(cbar_labels)
                 if getattr(self,'colorbar_label',None):
                     cbar_kwargs = getattr(self,'colorbar_label_kwargs',{'rotation':-90})
@@ -467,7 +462,9 @@ class MapPlot:
 
             kwargs['overlay_map'] = overlay_map
             self.__dict__.update(old_dict)
+            
             self.plot_single(mapp,i,ax=ax_list[plotnum],**kwargs)
+
             plotnum+=1
 
         return fig
@@ -540,9 +537,9 @@ class MapPlot:
         x,y = list(zip(*pts))
         xi = np.linspace(min(x),max(x),eff_res)
         yi = np.linspace(min(y),max(y),eff_res)
-        ri = griddata(x,y,r,xi,yi)
-        gi = griddata(x,y,g,xi,yi)
-        bi = griddata(x,y,b,xi,yi)
+        ri = griddata((x,y),r,(xi[None,:],yi[:,None]),method='cubic')
+        gi = griddata((x,y),g,(xi[None,:],yi[:,None]),method='cubic')
+        bi = griddata((x,y),b,(xi[None,:],yi[:,None]),method='cubic')
         rgb_array = np.zeros((eff_res,eff_res,3))
         for i in range(0,eff_res):
             for j in range(0,eff_res):

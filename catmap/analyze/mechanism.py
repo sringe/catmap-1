@@ -109,9 +109,18 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
 
                     if self.energy_type == 'free_energy':
                         energy_dict = self.scaler.get_free_energies(xy)
+
                     elif self.energy_type == 'potential_energy':
                         energy_dict = self.scaler.get_free_energies(xy)
                         energy_dict.update(self.scaler.get_electronic_energies(xy))
+
+                    elif self.energy_type == 'enthalpy':
+                        energy_dict = self.scaler.get_total_enthalpies(xy)
+
+                    elif self.energy_type == 'entropy':
+                        energy_dict = self.scaler.get_entropies(xy)
+                        for k in energy_dict.keys():
+                            energy_dict[k] *= self.temperature 
 
                     elif self.energy_type == 'interacting_energy':
 
@@ -144,11 +153,10 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                         for key in energy_dict:
                             if key.endswith('_g'):
                                 P = self.gas_pressures[self.gas_names.index(key)]
-                                if P==0:
-                                    print('Pressure is zero, setting it to 1')
-                                    P=1e-30
-                                print('this is a pressure {} {} {}'.format(key,P,self._kB*self.temperature*log(P)))
-                                energy_dict[key] += self._kB*self.temperature*log(P)
+                                if P > 0.:
+                                    energy_dict[key] += self._kB*self.temperature*log(P)
+                                else:
+                                    pass
                    
                     if self.coverage_correction == True:
                         print('printing coverage correctin')
@@ -168,9 +176,10 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                         if valid == False:
                             raise UserWarning('No coverages found for '+str(xy)+' in map')
                     
-                    for sp in energy_dict:
-                        if '_g' in sp and sp not in gas_energies:
-                            gas_energies[sp]=energy_dict[sp]
+#                    for sp in energy_dict:
+#                        if '_g' in sp and sp not in gas_energies:
+#                            gas_energies[sp]=energy_dict[sp]
+                    a = self._enthalpy_dict
                     params = self.adsorption_to_reaction_energies(energy_dict)
                     self.energies = [0]
                     self.barriers = []
@@ -314,6 +323,7 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                 outfile.write('END PRINTING ENERGIES\n')
                 outfile.write('%'*90+'\n')
                 outfile.write(' '*90+'\n')
+                    self.draw(ax)
         if method!=1:
             if self.energy_type == 'free_energy':
                 ax.set_ylabel('$\Delta G$ [eV]')
