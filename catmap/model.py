@@ -125,10 +125,6 @@ class ReactionModel:
             #This is NOT idiot proof.
             self.model_name = self.setup_file.rsplit('.',1)[0]
             self.load(self.setup_file)
-        #print 'before'
-        #import matplotlib.pyplot as plt
-        #plt.plot([1,2])
-        #plt.show()
        
     # Functions for executing the kinetic model
 
@@ -383,6 +379,7 @@ class ReactionModel:
         globs = {}
         locs = defaults
 
+        #print locs['descriptor_ranges']
         exec(compile(open(setup_file, 'r').read(), '<string>', 'exec'), globs, locs)
         for var in locs.keys():
             if var in self._classes:
@@ -422,7 +419,6 @@ class ReactionModel:
                     #automatically parse in "coverage" if fitting interaction params
                     self.parse_headers += ['coverage']
                 self.parse() #Automatically parse in data.
-
 
         self.load_data_file()
 
@@ -622,6 +618,7 @@ class ReactionModel:
                 options = "".join(options.split(" "))  # ignore spaces
                 suboptions = options.split(',')
                 for subopt in suboptions:
+                    print('option',subopt)
                     key, value = subopt.split('=')
                     if key in rxn_options_dict:
                         rxn_options_dict[key][rxn_index] = value

@@ -28,7 +28,7 @@ class TableParser(ParserBase):
                 required_headers = ['species_name','surface_name','site_name'
                                     ,'formation_energy','frequencies',
                                     'reference'],
-                parse_headers = ['formation_energy','frequencies'],
+                parse_headers = ['formation_energy','frequencies'], #,'sigma_params'],
                 frequency_unit_conversion = 1.239842e-4, # conversion factor to 
                 coverage_headers = ['coverage','coadsorbate_coverage'],
                 #go from input units to eV
@@ -68,6 +68,7 @@ class TableParser(ParserBase):
                              'are specified: '+' '.join(self.required_headers))
         linedicts = []
         for L in lines:
+#            print 'reading line',L
             linedict = {}
             for k, v in zip(headers, 
                     L.split(self._separator, len(headers))):
@@ -75,8 +76,22 @@ class TableParser(ParserBase):
             if len(linedict) != len(headers):
                 print("Input line " + str(linedict) + " does not have all required fields.  Ignoring.")
                 continue
+            #print '%'*15
+            ##FOR DEBUGGING species definitions
+            #for s in self.species_definitions:
+            #    print '/'*30
+            #    print 'species name:',s
+            #    print self.species_definitions[s]
+            #    print self.species_definitions[s].keys()
+            #    print 'type',self.species_definitions[s].get('type',None)
+            #    print 'linedict[\'site_name\']',linedict['site_name']
+            #    if self.species_definitions[s].get('type',None) == 'site':
+            #        print 'site_name in species_definitions[s][site_names]',linedict['site_name'] in self.species_definitions[s]['site_names']
+            #    print '/'*30
+            #print '%'*15
+            #sys.exit()
             sites = [s for s in self.species_definitions if
-                    self.species_definitions[s].get('type',None) == 'site' and 
+                    self.species_definitions[s].get('type',None) == 'site' and
                     linedict['site_name'] in 
                     self.species_definitions[s]['site_names']
                     and '*' not in s]
@@ -170,6 +185,88 @@ class TableParser(ParserBase):
                     else:
                         raise ValueError('No formation energy found for '+str(adsdef)+'. Check input file.')
 
+    def parse_sigma_params(self,**kwargs):
+        """
+        parabolic dependence of adsorbate free energy on surface charge density
+        """
+        self.__dict__.update(kwargs)
+       
+        all_ads = [k for k in self.species_definitions.keys()
+                   if self.species_definitions[k].get('type',None) != 'site']
+
+        for adsdef in all_ads:
+            if adsdef in ['ele_g', 'H_g', 'OH_g']:
+                continue  # Ignore electrochemical species that should not be manually defined.
+            ads = self.species_definitions[adsdef].get('name',None)
+            if ads is None:
+                del self.species_definitions[adsdef]
+                print('Warning: Species with undefined "name" was encountered ('+adsdef+'). '+\
+                     'Ensure that all species which are explicitly set in "species_definitions" '+\
+                     'are also defined in the reaction network ("rxn_expressions"). This definition '+\
+                     'will be ignored.')
+            else:
+                site = self.species_definitions[adsdef]['site']
+                alternative_names = self.species_definitions[adsdef].get(
+                        'alternative_names',[])
+                adsnames = [ads]+alternative_names
+
+                sites = self.species_definitions[site]['site_names']
+                infodict = {}
+                for linedict in self._line_dicts:
+                    if (
+                            linedict['species_name'] in adsnames and 
+                            linedict['site_name'] in sites and 
+                            linedict['surface_name'] in list(self.surface_names)+['None']
+                            ):
+                        
+                        #The following clause ensures that the low-coverage limit
+                        #is used unless otherwise specified. 
+                        #It should probably be abstracted out into something cleaner.
+                        pass_dict = {}
+                        surf = linedict['surface_name']
+                        for cvg_key in ['coverage','coadsorbate_coverage']:
+                            pass_dict[cvg_key] = True
+                            if cvg_key in linedict:
+                                standard_cvg = getattr(self,'standard_'+cvg_key, None)
+                                if standard_cvg in ['min','minimum',None]:
+                                    if surf in infodict:
+                                        if linedict[cvg_key] > infodict[surf][cvg_key]:
+                                            pass_dict[cvg_key] = False
+                                else:
+                                    if linedict[cvg_key] != standard_cvg:
+                                        pass_dict[cvg_key] = False
+
+                        if False not in pass_dict.values():
+                            infodict[surf] = linedict #map(float,linedict.strip('[').strip(']').split(','))
+                
+                #format sigma_params
+                for surf in infodict:
+                    if infodict[surf]['sigma_params']!='[]':
+                        infodict[surf]['sigma_params']=map(float,infodict[surf]['sigma_params'].strip('[').strip(']').split(','))
+                    else:
+                        infodict[surf]['sigma_params']=[0.0,0.0,0.0]
+
+                paramlist = []
+                sources = []
+                if self.species_definitions[adsdef]['type'] not in ['gas']:
+                    for surf in self.surface_names:
+                        if surf in infodict:
+                            sp = infodict[surf]['sigma_params']
+                            paramlist.append(sp)
+                            sources.append(infodict[surf]['reference'].strip())
+                        else:
+                            paramlist.append(None)
+                    self.species_definitions[adsdef]['sigma_params'] = paramlist
+                    self.species_definitions[adsdef]['sigma_params_source'] = sources
+                else:
+                    if 'None' in infodict:
+                        sp = infodict['None']['sigma_params']
+                        self.species_definitions[adsdef]['sigma_params'] = sp
+                        self.species_definitions[adsdef]['sigma_params_source'] = \
+                                infodict['None']['reference'].strip()
+                    else:
+                        raise ValueError('No sigma_params found for '+str(adsdef)+'. Check input file.')
+
     def parse_frequencies(self,**kwargs):
         self.__dict__.update(kwargs)
         allfreqdict = {}
@@ -177,6 +274,7 @@ class TableParser(ParserBase):
 
         #Parse in all available frequencies
         for linedict in self._line_dicts:
+            print linedict,linedict['frequencies']
             if eval(linedict['frequencies']):
                 freqs = eval(linedict['frequencies'])
                 freqs = [self.frequency_unit_conversion*f for f in freqs]
@@ -191,6 +289,7 @@ class TableParser(ParserBase):
                          freqs]
                     if frq not in allfreqdict[linedict['species_name']]:
                         allfreqdict[linedict['species_name']].append(frq)
+
 
         def freq_handler(freqdict_entry,site,ads):
             """
@@ -261,7 +360,6 @@ class TableParser(ParserBase):
                         ,adsname)
             elif self.estimate_frequencies > 3:
                 frequency_dict[adsdef] = []
-
         for adsdef in all_ads:
             adsname,site = [self.species_definitions[adsdef][k] 
                     for k in ['name','site']]

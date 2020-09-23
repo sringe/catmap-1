@@ -87,13 +87,12 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
             plot_variants = np.linspace(v_min, v_max, 5)
         if not self.plot_variant_colors:
             self.plot_variant_colors = get_colors(max(len(plot_variants),len(mechanisms)))
-        
         gas_energies={}
         self.kwarg_list = []
         for key in self.rxn_mechanisms.keys():
             self.kwarg_list.append(self.kwarg_dict.get(key,{}))
-
         for n,mech in enumerate(mechanisms):
+            #use mat
             for i, variant in enumerate(plot_variants):
                 if self.descriptor_dict:
                     xy = self.descriptor_dict[variant]
@@ -147,18 +146,23 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                                 P = self.gas_pressures[self.gas_names.index(key)]
                                 if P==0:
                                     print('Pressure is zero, setting it to 1')
-                                    P=1
+                                    P=1e-30
+                                print('this is a pressure {} {} {}'.format(key,P,self._kB*self.temperature*log(P)))
                                 energy_dict[key] += self._kB*self.temperature*log(P)
                    
                     if self.coverage_correction == True:
+                        print('printing coverage correctin')
                         if not self.coverage_map:
                             raise UserWarning('No coverage map found.')
-                        cvg_labels = self.output_labels['interacting_energy']
+#                        cvg_labels = self.output_labels['interacting_energy']
+                        cvg_labels = self.adsorbate_names
                         valid = False
+                        print('the map {}'.format(self.coverage_map))
                         for pt, cvgs in self.coverage_map:
                             if pt == xy:
                                 valid = True
                                 for ads,cvg in zip(cvg_labels, cvgs):
+                                    print('this is coverage correction pt  = {}, ads = {}, cvgs = {}'.format(pt,ads,self._kB*self.temperature*log(float(cvg))))
                                     energy_dict[ads] += self._kB*self.temperature*log(
                                                                             float(cvg))
                         if valid == False:
@@ -177,11 +181,14 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                                 self.barrier_line_args['color'] = \
                                 self.plot_variant_colors[i]
                     else:
-                        self.energy_line_args['color'] = \
+                        try:
+                            self.energy_line_args['color'] = \
                                 self.barrier_line_args['color'] = \
                                 self.plot_variant_colors[n]
+                        except:
+                            self.energy_line_args['color']='k'
                     for istep,step in enumerate(mech):
-
+                        print('going to step {}'.format(step))
                         if str(step).startswith('half'):
                             step = int(step.replace('half',''))
                             split = True
@@ -238,9 +245,11 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                                 self.rxn_species.append(tmp)
                         if split == False:
                             self.energies.append(nrg)
+                            print("appending barrier {}".format(bar))
                             self.barriers.append(bar)
                         elif split == True:
                             self.energies.append(0.5*nrg)
+                            print("appending barrier {}".format(0))
                             self.barriers.append(0) #split steps cannot have barriers.
                     if labels and self.include_labels:
                         self.labels = labels
@@ -268,7 +277,6 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                     self.initial_energy += self.line_offset
                     if method!=1:
                         self.draw(ax)
-
         if method!=0:
             with open('FED_gas.txt','w') as outfile:
                 outfile.write(' '*90+'\n')

@@ -28,15 +28,15 @@ import matplotlib as mpl
 mpl.use('Agg')
 import pylab as plt
 import matplotlib.transforms as mtransforms
-from matplotlib.mlab import griddata as mlab_griddata
+from scipy.interpolate import griddata as sp_griddata
 
 def griddata(*args, **kwargs):
     """Wrapper function to avoid annoying griddata errors"""
     try:
-        return mlab_griddata(*args, **kwargs)
+        return sp_griddata(*args, **kwargs)
     except RuntimeError:
         kwargs['interp'] = 'linear'
-        return mlab_griddata(*args, **kwargs)
+        return sp_griddata(*args, **kwargs)
 
 import mpmath as mp
 from ase.symbols import string2symbols
@@ -54,10 +54,10 @@ __version__ = "0.3.0"
 def griddata(*args, **kwargs):
     """Wrapper function to avoid annoying griddata errors"""
     try:
-        return mlab_griddata(*args, **kwargs)
+        return sp_griddata(*args, **kwargs)
     except RuntimeError:
         kwargs['interp'] = 'linear'
-        return mlab_griddata(*args, **kwargs)
+        return sp_griddata(*args, **kwargs)
 
 def load(setup_file):
     rxm = ReactionModel(setup_file = setup_file)
