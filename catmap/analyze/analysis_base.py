@@ -740,7 +740,6 @@ class MechanismPlot:
                     args['ha'] = 'left'
                 if 'va' not in args:# and 'textcoords' not in args:
                     args['va'] = 'bottom'
-                print('in here',type(args['va']))
                 if type(args['va'])==float:
                     ypos += args['va']
                     save=args['va']

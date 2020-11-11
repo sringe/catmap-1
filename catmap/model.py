@@ -515,7 +515,6 @@ class ReactionModel:
 
             if self.verbose > kwargs['priority']:
                 self._log_lines.append(log_string)
-                print(log_string)
             if status == 'warning':
                 self._warned.append(log_string)
 
@@ -1162,7 +1161,6 @@ class ReactionModel:
                     not callable(getattr(self,attr)) and
                     attr not in self._classes and
                     not inspect.ismodule(getattr(self,attr))):
-                print(attr)
                 val = repr(getattr(self,attr))
                 new_line = ''
                 if attr not in self._pickle_attrs:

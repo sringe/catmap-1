@@ -153,11 +153,13 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                         for key in energy_dict:
                             if key.endswith('_g'):
                                 P = self.gas_pressures[self.gas_names.index(key)]
+                                #if P==0:
+                                #    print('Pressure is zero, setting it to 1')
+                                #    P=1
                                 if P > 0.:
                                     energy_dict[key] += self._kB*self.temperature*log(P)
                                 else:
                                     pass
-                   
                     if self.coverage_correction == True:
                         print('printing coverage correctin')
                         if not self.coverage_map:
@@ -176,9 +178,9 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                         if valid == False:
                             raise UserWarning('No coverages found for '+str(xy)+' in map')
                     
-#                    for sp in energy_dict:
-#                        if '_g' in sp and sp not in gas_energies:
-#                            gas_energies[sp]=energy_dict[sp]
+                    for sp in energy_dict:
+                        if '_g' in sp and sp not in gas_energies:
+                            gas_energies[sp]=energy_dict[sp]
                     a = self._enthalpy_dict
                     params = self.adsorption_to_reaction_energies(energy_dict)
                     self.energies = [0]
@@ -197,7 +199,6 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                         except:
                             self.energy_line_args['color']='k'
                     for istep,step in enumerate(mech):
-                        print('going to step {}'.format(step))
                         if str(step).startswith('half'):
                             step = int(step.replace('half',''))
                             split = True
@@ -287,7 +288,13 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                     if method!=1:
                         self.draw(ax)
         if method!=0:
-            with open('FED_gas.txt','w') as outfile:
+            add=''
+            if self.pressure_correction:
+                add+='_pressure_correction'
+            if self.coverage_correction:
+                add+='_coverage_correction'
+
+            with open('FED_gas'+add+'.txt','w') as outfile:
                 outfile.write(' '*90+'\n')
                 outfile.write('%'*90+'\n')
                 outfile.write('FREE ENERGIES OF GAS SPECIES\n')
@@ -298,7 +305,7 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                 outfile.write(' '*90+'\n')
 
 
-            with open('FED_rxn.txt','w') as outfile:
+            with open('FED'+add+'.txt','w') as outfile:
                 outfile.write(' '*90+'\n')
                 outfile.write('%'*90+'\n')
                 outfile.write('FREE ENERGIES AND BARRIERS OF REACTIONS\n')
@@ -319,7 +326,7 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                         outfile.write(tabulate(to_print,headers=['Reaction','Delta Free Energy (eV)','Kinetic Barrier (eV)']))
                     else:
                         for a,b,c in to_print:
-                            outfile.write('{} {} {}'.format(a,b,c))
+                            outfile.write('{} {} {}\n'.format(a,b,c))
                 outfile.write('END PRINTING ENERGIES\n')
                 outfile.write('%'*90+'\n')
                 outfile.write(' '*90+'\n')
@@ -338,6 +345,25 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
             return fig
         else:
             return None
+#new git version
+#                    self.draw(ax)
+#
+#        if self.energy_type == 'free_energy':
+#            ax.set_ylabel('$\Delta G$ [eV]')
+#        elif self.energy_type == 'potential_energy':
+#            ax.set_ylabel('$\Delta E$ [eV]')
+#        elif self.energy_type == 'enthalpy':
+#                    ax.set_ylabel('$\Delta H$ [eV]')
+#        elif self.energy_type == 'entropy':
+#                    ax.set_ylabel('$T\Delta S$ [eV]')            
+#        if self.energy_type == 'interacting_energy':
+#            ax.set_ylabel('$\Delta G_{interacting}$ [eV]')
+#        fig.subplots_adjust(**self.subplots_adjust_kwargs)
+#        MapPlot.save(self,fig,
+#                save=save,default_name=self.model_name+'_pathway.pdf')
+#        self._fig = fig
+#        self._ax = ax
+#        return fig
 
     def label_maker(self,species):
         """

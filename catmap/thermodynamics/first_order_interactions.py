@@ -271,7 +271,6 @@ class FirstOrderInteractions(ReactionModelWrapper):
                         required_params_dict[reqd] += [cvg_Ed_Eint_i]
             
             for key in list(required_params_dict.keys()):
-                print(key)
                 keylist = eval(key)
                 cvgs = required_params_dict[key]
                 if len(keylist) == 1:

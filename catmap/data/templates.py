@@ -180,12 +180,6 @@ def ideal_mean_field_steady_state(kf,kr,theta,p,mpf,matrix):
 templates['interacting_mean_field_jacobian'] = r"""
 def interacting_mean_field_jacobian(rxn_parameters,theta,p,gas_energies,site_energies,T,F,mpf,matrix,mpexp,mpsqrt):
 
-#    print 'rxn_parameters = ', rxn_parameters
-#    print 'theta = ', theta
-#    print 'p = ', p
-#    print 'gas_energies = ', gas_energies
-#    print 'site_energies = ', site_energies
-#    print 'T = ', T
     ${kB}
     ${n_adsorbates}
     kBT = kB*T
@@ -250,7 +244,6 @@ def interaction_function(coverages,energies,interaction_vector,F,include_derivat
     sites = [0]*len(coverages)
     c_tots = [0]*len(coverages)
     for s in site_info_dict:
-#        print 's',s
         idxs, max_cvg, F_params = site_info_dict[s]
         # HACK!
         #6 for simplified
@@ -445,7 +438,6 @@ def interaction_function(coverages,energies,epsilon,F,include_derivatives=True,i
                                                        f[s][q_k]*d2f[s][q_k]))
                 
                 
-        #print E_jacob
         #HACK
         if hack_list:
             if E_jacob:

@@ -160,7 +160,7 @@ class ScalerBase(ReactionModelWrapper):
     def get_total_enthalpies(self,descriptors,**kwargs):
         self.get_free_energies(descriptors,**kwargs)
         energy_dict = self._enthalpy_dict.copy()
-        for _ in energy_dict.keys():
+        for _ in list(energy_dict.keys()):
             energy_dict[_] += self._electronic_energy_dict[_]
         return energy_dict
     
