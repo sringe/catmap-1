@@ -323,7 +323,6 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                 outfile.write('END PRINTING ENERGIES\n')
                 outfile.write('%'*90+'\n')
                 outfile.write(' '*90+'\n')
-                    self.draw(ax)
         if method!=1:
             if self.energy_type == 'free_energy':
                 ax.set_ylabel('$\Delta G$ [eV]')

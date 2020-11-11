@@ -1025,6 +1025,7 @@ class ReactionModel:
                     del total_comp[key]
             return total_comp
 
+
         for rxn in self.elementary_rxns:
             if len(rxn) == 2:
                 IS, FS = rxn

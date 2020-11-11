@@ -97,7 +97,7 @@ def rate_constants(rxn_parameters,theta,gas_energies,site_energies,T,F,mpf,matri
         return [sum(L) for L in zip(*lists)]
 
     ${elementary_step_energetics}
-    print('The forward 0 G_IS list = {}'.format(G_IS))
+#    print('The forward 0 G_IS list = {}'.format(G_IS))
     n_rxns = len(G_IS)
     for i in range(n_rxns):
         G_list = [G_IS[i],G_FS[i],G_TS[i]]
@@ -107,8 +107,8 @@ def rate_constants(rxn_parameters,theta,gas_energies,site_energies,T,F,mpf,matri
         G_ar[i] = G_TS_i - G_FS[i]
         kf = prefactor_list[i]*mpexp(-G_af[i]/(kB*T))
         kr = prefactor_list[i]*mpexp(-G_ar[i]/(kB*T))
-        print('The forward {} {} G_IS = {}, G_TS_i = {}, G_FS = {}'.format(i,1, G_IS[i],G_TS_i,G_FS[i]))
-        print('The forward {} {} G_af[i] = {}, prefactor = {}, kf = {}'.format(i, 2 ,G_af[i],prefactor_list[i],kf))
+#        print('The forward {} {} G_IS = {}, G_TS_i = {}, G_FS = {}'.format(i,1, G_IS[i],G_TS_i,G_FS[i]))
+#        print('The forward {} {} G_af[i] = {}, prefactor = {}, kf = {}'.format(i, 2 ,G_af[i],prefactor_list[i],kf))
         kfs.append(kf)
         krs.append(kr)
         if include_derivatives:
