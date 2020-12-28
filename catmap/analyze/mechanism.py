@@ -161,18 +161,18 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                                 else:
                                     pass
                     if self.coverage_correction == True:
-                        print('printing coverage correctin')
+                        #print('printing coverage correctin')
                         if not self.coverage_map:
                             raise UserWarning('No coverage map found.')
 #                        cvg_labels = self.output_labels['interacting_energy']
                         cvg_labels = self.adsorbate_names
                         valid = False
-                        print('the map {}'.format(self.coverage_map))
+                        #print('the map {}'.format(self.coverage_map))
                         for pt, cvgs in self.coverage_map:
                             if pt == xy:
                                 valid = True
                                 for ads,cvg in zip(cvg_labels, cvgs):
-                                    print('this is coverage correction pt  = {}, ads = {}, cvgs = {}'.format(pt,ads,self._kB*self.temperature*log(float(cvg))))
+                                    #print('this is coverage correction pt  = {}, ads = {}, cvgs = {}'.format(pt,ads,self._kB*self.temperature*log(float(cvg))))
                                     energy_dict[ads] += self._kB*self.temperature*log(
                                                                             float(cvg))
                         if valid == False:
@@ -255,11 +255,11 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                                 self.rxn_species.append(tmp)
                         if split == False:
                             self.energies.append(nrg)
-                            print("appending barrier {}".format(bar))
+#                            print("appending barrier {}".format(bar))
                             self.barriers.append(bar)
                         elif split == True:
                             self.energies.append(0.5*nrg)
-                            print("appending barrier {}".format(0))
+#                            print("appending barrier {}".format(0))
                             self.barriers.append(0) #split steps cannot have barriers.
                     if labels and self.include_labels:
                         self.labels = labels

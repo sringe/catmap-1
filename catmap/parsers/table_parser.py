@@ -268,7 +268,7 @@ class TableParser(ParserBase):
 
         #Parse in all available frequencies
         for linedict in self._line_dicts:
-            print linedict,linedict['frequencies']
+            #print linedict,linedict['frequencies']
             if eval(linedict['frequencies']):
                 freqs = eval(linedict['frequencies'])
                 freqs = [self.frequency_unit_conversion*f for f in freqs]

@@ -979,7 +979,7 @@ class ThermoCorrections(ReactionModelWrapper):
             data_sigma=self.read_comsol(self.sigma_input)
             p=interp1d(data_sigma[:,0],data_sigma[:,1])
             sigma=p(voltage)
-            print('Using a sigma of = {}'.format(sigma))
+            #print('Using a sigma of = {}'.format(sigma))
         elif type(self.sigma_input)==float:
             sigma=self.sigma_input
         elif type(self.sigma_input)==list and self.sigma_input[0]=='CH':
@@ -1049,7 +1049,6 @@ class ThermoCorrections(ReactionModelWrapper):
         beta = self.beta
         pot_rev={}
         for TS in TS_names:
-            print 'Working on ',TS
             preamble, site = TS.split('_')
             #echem, rxn_index, barrier = preamble.split('-')
             rxn_index=self.get_rxn_index_from_TS(TS)
@@ -1086,15 +1085,13 @@ class ThermoCorrections(ReactionModelWrapper):
             if z_sum is None:
                 continue
             z_sum[-1]=0.0
-            print z_sum
             p = np.poly1d(z_sum)
             #now define the reversible potential equation
-            print 'the dG',dG
             def func(phi):
                 return dG + phi +p(self.sigma(self.sigma_input,phi))
             #find roots of this function, initial guess it reversible potential
             revpot=fsolve(func,oldrevpot)[0]
-            print('Charging corrected rev. potential of {} is {}'.format(TS,revpot))
+            #print('Charging corrected rev. potential of {} is {}'.format(TS,revpot))
             #shift echem TS to correct for real reversible potential
             thermo_dict[TS] += beta * (oldrevpot-revpot)
 
@@ -1295,7 +1292,7 @@ class ThermoCorrections(ReactionModelWrapper):
     def static_pressure(self):
         for g in self.gas_names:
             if 'pressure' not in self.species_definitions[g]:
-                print 'Pressure not found for species ',g
+                print('Pressure not found for species ',g)
                 sys.exit()
         self.gas_pressures = [self.species_definitions[g]['pressure'] for g in self.gas_names]
 

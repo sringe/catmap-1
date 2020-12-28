@@ -229,7 +229,6 @@ class ReactionModel:
         else:
             raise AttributeError(
                     'Invalid adsorbate_interaction_model specified.')
-
         self.compatibility_check()
 
         # Determine whether or not to (re-)solve model.
@@ -620,7 +619,7 @@ class ReactionModel:
                 options = "".join(options.split(" "))  # ignore spaces
                 suboptions = options.split(',')
                 for subopt in suboptions:
-                    print('option',subopt)
+                    #print('option',subopt)
                     key, value = subopt.split('=')
                     if key in rxn_options_dict:
                         rxn_options_dict[key][rxn_index] = value
