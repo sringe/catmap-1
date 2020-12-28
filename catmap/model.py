@@ -229,7 +229,6 @@ class ReactionModel:
         else:
             raise AttributeError(
                     'Invalid adsorbate_interaction_model specified.')
-
         self.compatibility_check()
 
         # Determine whether or not to (re-)solve model.
@@ -384,7 +383,6 @@ class ReactionModel:
 
         globs = {}
         locs = defaults
-        
         exec(compile(open(setup_file, 'rb').read(), '<string>', 'exec'), globs, locs)
         for var in locs.keys():
             if var in self._classes:
@@ -424,7 +422,6 @@ class ReactionModel:
                     #automatically parse in "coverage" if fitting interaction params
                     self.parse_headers += ['coverage']
                 self.parse() #Automatically parse in data.
-
 
         self.load_data_file()
 
@@ -622,6 +619,7 @@ class ReactionModel:
                 options = "".join(options.split(" "))  # ignore spaces
                 suboptions = options.split(',')
                 for subopt in suboptions:
+                    #print('option',subopt)
                     key, value = subopt.split('=')
                     if key in rxn_options_dict:
                         rxn_options_dict[key][rxn_index] = value
@@ -1024,6 +1022,7 @@ class ReactionModel:
                 if total_comp[key] == 0:
                     del total_comp[key]
             return total_comp
+
 
         for rxn in self.elementary_rxns:
             if len(rxn) == 2:

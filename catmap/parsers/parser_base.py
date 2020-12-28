@@ -8,6 +8,7 @@ from catmap import ReactionModelWrapper
 from catmap.model import ReactionModel
 
 from catmap.functions import get_composition, cartesian_product 
+import sys
 
 class ParserBase(ReactionModelWrapper):
     def __init__(self,reaction_model=None):
@@ -36,7 +37,9 @@ class ParserBase(ReactionModelWrapper):
         #Make dictionary of useful information about species in model
         if not self.species_definitions:
             self.species_definitions = {}
-        
+        if any(str(i)+'_s' in self.adsorbate_names for i in range(10)):
+            print('Catmap cannot include factors in front of species, e.g. if you have 2 CO, write CO + CO instead')
+            sys.exit()
         for species in (self.gas_names+self.adsorbate_names+
                 self.transition_state_names+self.site_names+tuple(self._gas_sites)):
             

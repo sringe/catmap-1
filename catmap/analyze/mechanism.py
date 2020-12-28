@@ -153,22 +153,26 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                         for key in energy_dict:
                             if key.endswith('_g'):
                                 P = self.gas_pressures[self.gas_names.index(key)]
-                                if P==0:
-                                    print('Pressure is zero, setting it to 1')
-                                    P=1
-                                if P>0.:
+                                #if P==0:
+                                #    print('Pressure is zero, setting it to 1')
+                                #    P=1
+                                if P > 0.:
                                     energy_dict[key] += self._kB*self.temperature*log(P)
                                 else:
                                     pass
                     if self.coverage_correction == True:
+                        #print('printing coverage correctin')
                         if not self.coverage_map:
                             raise UserWarning('No coverage map found.')
-                        cvg_labels = self.output_labels['interacting_energy']
+#                        cvg_labels = self.output_labels['interacting_energy']
+                        cvg_labels = self.adsorbate_names
                         valid = False
+                        #print('the map {}'.format(self.coverage_map))
                         for pt, cvgs in self.coverage_map:
                             if pt == xy:
                                 valid = True
                                 for ads,cvg in zip(cvg_labels, cvgs):
+                                    #print('this is coverage correction pt  = {}, ads = {}, cvgs = {}'.format(pt,ads,self._kB*self.temperature*log(float(cvg))))
                                     energy_dict[ads] += self._kB*self.temperature*log(
                                                                             float(cvg))
                         if valid == False:
@@ -251,9 +255,11 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                                 self.rxn_species.append(tmp)
                         if split == False:
                             self.energies.append(nrg)
+#                            print("appending barrier {}".format(bar))
                             self.barriers.append(bar)
                         elif split == True:
                             self.energies.append(0.5*nrg)
+#                            print("appending barrier {}".format(0))
                             self.barriers.append(0) #split steps cannot have barriers.
                     if labels and self.include_labels:
                         self.labels = labels

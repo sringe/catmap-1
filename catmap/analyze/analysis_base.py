@@ -77,7 +77,7 @@ def boltzmann_vector(energy_list,vector_list,temperature):
         exp_weighted = [n*np.exp(-e/(kB*T))/exp_sum for n,e in zip(ns,es)]
         Z = sum(exp_weighted)
         return Z
-    vars = zip(*vector_list)
+    vars = list(zip(*vector_list))
     boltz_vec = [boltzmann_avg(energy_list,v,temperature) for v in vars]
     return boltz_vec
 
@@ -191,7 +191,7 @@ class MapPlot:
         """
         if getattr(self,'descriptor_dict',None):
             self.update_descriptor_args()
-            xy,rates = zip(*list(mapp))
+            xy,rates = list(zip(*list(mapp)))
             dim = len(xy[0])
             for key in self.descriptor_dict:
                 pt_kwargs = self.descriptor_pt_args.get(key,
@@ -238,7 +238,7 @@ class MapPlot:
             fig = plt.figure()
             ax = fig.add_subplot(111)
 
-        xy,rates = zip(*list(mapp))
+        xy,rates = list(zip(*list(mapp)))
         dim = len(xy[0])
         if dim == 1:
             x = list(zip(*xy))[0]
@@ -249,7 +249,7 @@ class MapPlot:
                 else:
                     self.plot_function = 'plot'
         elif dim == 2:
-            x,y = zip(*xy)
+            x,y = list(zip(*xy))
             descriptor_ranges = [[min(x),max(x)],[min(y),max(y)]]
             if not self.plot_function:
                 self.plot_function = 'contourf'
@@ -324,7 +324,7 @@ class MapPlot:
             x_range,y_range = descriptor_ranges
             z = maparray[:,:,rxn_index]
             if self.log_scale:
-                levels = range(int(min_val),int(max_val)+1)
+                levels = list(range(int(min_val),int(max_val)+1))
                 if len(levels) < 3*self.n_ticks:
                     levels = np.linspace(
                             int(min_val),int(max_val),3*self.n_ticks)
@@ -350,7 +350,7 @@ class MapPlot:
         elif dim == 2:
             if self.colorbar:
                 if log_scale: #take only integer tick labels
-                    cbar_nums = range(int(min_val),int(max_val)+1)
+                    cbar_nums = list(range(int(min_val),int(max_val)+1))
                     mod = max(int(len(cbar_nums)/self.n_ticks), 1)
                     cbar_nums = [n for i,n in enumerate(cbar_nums) if not i%mod]
                     cbar_nums = np.array(cbar_nums)
@@ -403,7 +403,7 @@ class MapPlot:
         list_mapp = list(mapp)
         pts,rates = list(zip(*list(mapp)))
         if indices is None:
-            indices = range(0,len(rates[0]))
+            indices = list(range(0,len(rates[0])))
         n_plots = len(indices)
 
         if not ax_list:
@@ -438,7 +438,7 @@ class MapPlot:
 
         if not self.min or not self.max:
             for id,i in enumerate(indices):
-                pts, datas = zip(*list(mapp))
+                pts, datas = list(zip(*list(mapp)))
                 dat_min = 1e99
                 dat_max = -1e99
                 for col in zip(*datas):
@@ -501,30 +501,30 @@ class MapPlot:
             color_list = self.color_list
 
 
-        pts,datas = zip(*list(mapp))
+        pts,datas = list(zip(*list(mapp)))
         if indices is None:
-            indices = range(0,len(datas[0]))
+            indices = list(range(0,len(datas[0])))
         rgbs = []
-        datas = zip(*datas)
+        datas = list(zip(*datas))
         datas = [d for id,d in enumerate(datas) if id in indices]
-        datas = zip(*datas)
+        datas = list(zip(*datas))
         if second_map:
-            pts2,datas2 = zip(*second_map)
-            datas2 = zip(*datas2)
+            pts2,datas2 = list(zip(*second_map))
+            datas2 = list(zip(*datas2))
             datas2 = [d for id,d in enumerate(datas2) if id in indices]
-            datas2 = zip(*datas2)
+            datas2 = list(zip(*datas2))
         else:
             datas2 = datas
         for data,data2 in zip(datas,datas2):
             if weighting=='linear':
-                rs,gs,bs = zip(*color_list)
+                rs,gs,bs = list(zip(*color_list))
                 r = 1 - sum(float((1-ri)*di) for ri,di in zip(rs,data))
                 g = 1 - sum(float((1-gi)*di) for gi,di in zip(gs,data))
                 b = 1 - sum(float((1-bi)*di) for bi,di in zip(bs,data))
                 eff_res = self.resolution*self.resolution_enhancement
                 rgbs.append([r,g,b])
             elif weighting =='dual':
-                rs,gs,bs = zip(*color_list)
+                rs,gs,bs = list(zip(*color_list))
                 r = 1 - sum(float((1-ri)*di*d2i)
                         for ri,di,d2i in zip(rs,data,data2))
                 g = 1 - sum(float((1-gi)*di*d2i)
@@ -533,8 +533,8 @@ class MapPlot:
                         for bi,di,d2i in zip(bs,data,data2))
                 eff_res = 300
                 rgbs.append([r,g,b])
-        r,g,b = zip(*rgbs)
-        x,y = zip(*pts)
+        r,g,b = list(zip(*rgbs))
+        x,y = list(zip(*pts))
         xi = np.linspace(min(x),max(x),eff_res)
         yi = np.linspace(min(y),max(y),eff_res)
         ri = griddata((x,y),r,(xi[None,:],yi[:,None]),method='cubic')
@@ -726,7 +726,7 @@ class MechanismPlot:
                 ax.xaxis.set_ticks([float(sum(line[0])/len(line[0]))
                     for line in energy_lines])
                 ax.set_xticklabels(self.labels)
-                for attr in args.keys():
+                for attr in list(args.keys()):
                     try:
                         [getattr(t,'set_'+attr)(args[attr])
                                 for t in ax.xaxis.get_ticklabels()]
@@ -824,7 +824,7 @@ class ScalingPlot:
         .. todo:: __doc__
         """
         all_ads = self.adsorbate_names + self.transition_state_names
-        all_ads = [a for a in all_ads if a in self.parameter_dict.keys() and
+        all_ads = [a for a in all_ads if a in list(self.parameter_dict.keys()) and
             a not in self.echem_transition_state_names]
         if self.include_empty:
             ads_names = all_ads
@@ -858,8 +858,8 @@ class ScalingPlot:
                     for i in range(len(ads_names))]
         else:
             fig = None
-        all_xs, all_ys = zip(*[self.descriptor_dict[s]
-            for s in self.surface_names])
+        all_xs, all_ys = list(zip(*[self.descriptor_dict[s]
+            for s in self.surface_names]))
 
         fig.subplots_adjust(**self.subplots_adjust_kwargs)
         all_ys = []
