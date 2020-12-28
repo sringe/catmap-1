@@ -1002,7 +1002,7 @@ class ThermoCorrections(ReactionModelWrapper):
             pot_rev[echem_TS]=-dG
 
 
-        print 'THE REVERSIBLE POTENTIALS',pot_rev
+#        print 'THE REVERSIBLE POTENTIALS',pot_rev
 
 
         #2nd part, regular electrochemistry

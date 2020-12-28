@@ -27,7 +27,7 @@ except ImportError:
     spline = spline_wrapper
 
 import matplotlib as mpl
-mpl.use('Agg')
+#mpl.use('Agg')
 import pylab as plt
 import matplotlib.transforms as mtransforms
 from scipy.interpolate import griddata as sp_griddata
