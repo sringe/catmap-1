@@ -140,14 +140,21 @@ class MeanFieldSolver(SolverBase):
         try:
             diff_idxs = range(len(self.adsorbate_names+self.transition_state_names))
             dRdG = numerical_jacobian(self.get_turnover_frequency,rxn_parameters,self._matrix,eps,diff_idxs=diff_idxs)
-        except ValueError(strerror):
+        except ValueError as strerror:
+            strerror = str(strerror)
             resid = str(strerror).rsplit('=',1)[1]
             resid = resid.replace(')','')
             resid.strip()
             self.log('jacobian_fail',resid=resid)
-            dRdG = np.zeros((len(self.gas_names),len(self.adsorbate_names+self.transition_state_names)))
+            dRdG = np.zeros((len(self.gas_names),len(self.adsorbate_names+self.transition_state_names)),dtype=object)
 
         t0 = self.get_turnover_frequency(rxn_parameters)
+        #print('DEB,kt',kT)
+        #print('DEB,dRdG',dRdG)
+        #print('DEB',type(kT))
+        #print('DEB',type(dRdG))
+        #print('DEB, s1',np.shape(dRdG))
+        #print('DEB, s2',type(dRdG[0,0]))
         dRdG *= -kT
         dRdG = dRdG.tolist()
         DRC = []
@@ -180,7 +187,9 @@ class MeanFieldSolver(SolverBase):
         eps = self._mpfloat(self.perturbation_size)
         try:
             dSdG = numerical_jacobian(self.get_selectivity,rxn_parameters,self._matrix,eps)
-        except ValueError(strerror):
+#        except ValueError(strerror):
+        except ValueError as strerror:
+            strerror = str(strerror)
             resid = str(strerror).rsplit('=',1)[1]
             resid = resid.replace(')','')
             resid.strip()

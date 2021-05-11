@@ -52,6 +52,7 @@ class FirstOrderInteractions(ReactionModelWrapper):
             if '+' in self.interaction_fitting_mode:
                 self.interaction_fitting_mode = self.interaction_fitting_mode.split('+')
             try:
+                print("TRYING TO FIT")
                 self.fit()
             except ValueError as inst:
                 #This is due to poor error handling elsewhere... if self.fit() raises
@@ -161,6 +162,7 @@ class FirstOrderInteractions(ReactionModelWrapper):
             return abs(diff_err) + abs(int_err)
 
     def fit_interaction_parameter(self,theta_list,E_diffs,E_ints,param_name,surf_name):
+        print('ENERGIES',E_ints,E_diffs)
         def target_function(eps_ij, theta_list, E_diffs,E_ints,param_name,surf_name):
             error = 0
             for theta,Ed,Ei in zip(theta_list,E_diffs,E_ints):
@@ -169,7 +171,7 @@ class FirstOrderInteractions(ReactionModelWrapper):
                 err_norm = self.error_norm(d_err, i_err)
                 error += err_norm
             return error/len(theta_list)
-        
+        print('testing {} %% {} %% {} %% {} %% {}'.format(theta_list,E_diffs,E_ints,param_name,surf_name))
         minimize = lambda x: target_function(x,theta_list,E_diffs,E_ints,
                 param_name,surf_name)
 
@@ -189,6 +191,7 @@ class FirstOrderInteractions(ReactionModelWrapper):
         return eps_ij
 
     def fit(self):
+        print('INT FITTING')
 
         def required_params_to_fitting_info(param, key, required_params, fitting_info):
             #helper function to transfer data from "required_params_dict" to "fitting_info"
@@ -252,12 +255,13 @@ class FirstOrderInteractions(ReactionModelWrapper):
             all_cvgs = []
             for key in self.species_definitions:
                 info = self.species_definitions[key]
+                print('info',info)
                 if info.get('coverage_dependent_energy',[None]*(surf_id+1))[surf_id]:
                     for cvg_i in info['coverage_dependent_energy'][surf_id]:
                         cvg,Ediff,Eint= cvg_i
                         Ediff = [Ediff,key]
                         all_cvgs.append([cvg,Ediff,Eint])
-
+            print('all_cvgs',all_cvgs)
             required_params_dict = {}
             fitting_info = {}
             #organize coverages by which parameters the correspond to
@@ -326,6 +330,7 @@ class FirstOrderInteractions(ReactionModelWrapper):
             for key in self_keys:
                 param = eval(key)[0]
                 if param not in user_inputs:
+                    print('GOING INTO TH EFITTING')
                     required_params_to_fitting_info(param,key,required_params_dict,fitting_info)
           
             sync_with_species_defs(fitting_info,surf_id) 
