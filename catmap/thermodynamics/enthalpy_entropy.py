@@ -93,7 +93,6 @@ class ThermoCorrections(ReactionModelWrapper):
         self._enthalpy_dict = {}
         self._entropy_dict = {}
         self._rxm.update(defaults)
-                
         for corr in self.thermodynamic_corrections:
             self._required[corr+'_thermo_mode'] = str
             self.thermodynamic_variables.append(corr+'_thermo_mode')
@@ -150,7 +149,6 @@ class ThermoCorrections(ReactionModelWrapper):
             thermo_dict = getattr(self,mode)()
             #add this to the full dictionary of energies:
             add_dict_in_place(correction_dict, thermo_dict)
-
         if self.pressure_mode:
             getattr(self,self.pressure_mode+'_pressure')()
             
@@ -186,7 +184,6 @@ class ThermoCorrections(ReactionModelWrapper):
             G_OH = G_H2O - G_H # Do not need Kw, just need to make sure equilibria are satisfied
             correction_dict['H_g'] = G_H
             correction_dict['OH_g'] = G_OH
-
         # pressure corrections to species in the echem double layer based on kH
         if 'dl' in list(self.species_definitions.keys()):
             dl_species = [spec for spec in list(self.species_definitions.keys())
@@ -370,8 +367,6 @@ class ThermoCorrections(ReactionModelWrapper):
                     self._entropy_dict[gas] = dS
                     thermo_dict[gas] = free_energy
                 else:
-                    print((shomate_params.keys))
-                    print((shomate_params[gas]))
                     raise ValueError('No Shomate parameters available for T = {}  specified for {}'.format(temperature,gas))
             else:
                 not_there.append(gas)
@@ -526,7 +521,6 @@ class ThermoCorrections(ReactionModelWrapper):
                 avg_TS.append(ads)
             else:
                 raise IndexError('Missing vibrational frequencies for '+ads)
-
         ts_thermo = self.average_transition_state(thermo_dict,avg_TS)
         thermo_dict.update(ts_thermo)
 
@@ -928,8 +922,6 @@ class ThermoCorrections(ReactionModelWrapper):
         # scale pe thermo correction by voltage (vs RHE)
         for gas in gas_names:
             thermo_dict[gas] = -voltage
-
-
         # no hbond correction for simple_electrochemical
         # correct TS energies with beta*voltage (and hbonding?)
         for TS in TS_names:
@@ -953,7 +945,6 @@ class ThermoCorrections(ReactionModelWrapper):
             #self.temperature=300
             if self.potential_reference_scale=='RHE':
                 thermo_dict[TS] -= beta*.0592/298.14*self.temperature*self.pH #/298.14*self.temperature
-
         return thermo_dict
 
     def reversible_kinetics_electrochemical(self):

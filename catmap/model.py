@@ -1111,7 +1111,7 @@ class ReactionModel:
             self.resolution = 15
             print("Info: set resolution to {self.resolution} as default.".format(**locals()))
 
-        if any(ads in ['ele_g', 'H_g', 'OH_g', 'pe_g'] for ads in self.species_definitions.keys()):
+        if any(ads in ['ele_g', 'H_g', 'OH_g', 'pe_g'] for ads in self.species_definitions.keys()) and 'electrochemical' not in self.thermodynamic_corrections:
             self.thermodynamic_corrections.append('electrochemical')
 
     #Data manipulation and conversion
@@ -1441,7 +1441,6 @@ class ReactionModel:
                             should be energies.
         :type energy_dict: dict
         """
-
         IS = rxn[0]
         FS = rxn[-1]
         if len(rxn) <= 2:
@@ -1454,7 +1453,7 @@ class ReactionModel:
             E_TS = self.get_state_energy(TS,energy_dict)
         else:
             E_TS = max(E_IS,E_FS)
-
+        
         dE = E_FS - E_IS
         E_a = max(0,(E_TS - E_IS),(E_FS - E_IS))
         return dE, E_a

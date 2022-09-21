@@ -59,7 +59,6 @@ class TableParser(ParserBase):
         
         self._baseparse()
 
-
         headers = lines.pop(0).split(self._separator)
         headers = [h.strip() for h in headers]
         if not set(self.required_headers).issubset(set(headers)):
@@ -284,7 +283,6 @@ class TableParser(ParserBase):
                     if frq not in allfreqdict[linedict['species_name']]:
                         allfreqdict[linedict['species_name']].append(frq)
 
-
         def freq_handler(freqdict_entry,site,ads):
             """
             Returns a single list of frequencies from a freqdict_entry, which is a list
@@ -348,7 +346,6 @@ class TableParser(ParserBase):
             elif adsdef in list(allfreqdict.keys()):
                 adsname = adsdef
                 site = self._default_site
-
             if adsname in allfreqdict:
                 frequency_dict[adsdef] = freq_handler(allfreqdict[adsname],site
                         ,adsname)
@@ -369,7 +366,7 @@ class TableParser(ParserBase):
                     for s in symbols:
                         freqs += frequency_dict[s]
                 frequency_dict[adsdef] = freqs
-
+    
         for adsdef in all_ads:
             #Use dissosciated TS frequencies
             adsname,site = [self.species_definitions[adsdef][k] 
@@ -384,7 +381,6 @@ class TableParser(ParserBase):
 
         for key in list(self.species_definitions.keys()):
             self.species_definitions[key]['frequencies'] = frequency_dict.get(key,[])
-
     def parse_coverage(self,**kwargs):
         self.__dict__.update(kwargs)
         
