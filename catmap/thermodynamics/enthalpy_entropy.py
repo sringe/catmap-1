@@ -961,9 +961,9 @@ class ThermoCorrections(ReactionModelWrapper):
 
         TS_names = [TS for TS in self.transition_state_names if
             'pe' in TS.split('_')[0] or 'ele' in TS.split('_')[0]]
+        #TS_names_chem = [TS for TS in self.transition_state_names if
+        #    not ('pe' in TS.split('_')[0] or 'ele' in TS.split('_')[0])]
 
-        TS_names_chem = [TS for TS in self.transition_state_names if
-            not ('pe' in TS.split('_')[0] or 'ele' in TS.split('_')[0])]
         voltage = self.voltage
         thermo_dict = {}
 
@@ -995,7 +995,6 @@ class ThermoCorrections(ReactionModelWrapper):
 
 #        print 'THE REVERSIBLE POTENTIALS',pot_rev
 
-
         #2nd part, regular electrochemistry
         thermo_dict = {}
         gas_names = [gas for gas in self.gas_names if gas.split('_')[0] in ['pe', 'ele']]
@@ -1018,7 +1017,7 @@ class ThermoCorrections(ReactionModelWrapper):
         # correct TS energies with beta*voltage (and hbonding?)
         for TS in TS_names:
             rxn_index = self.get_rxn_index_from_TS(TS)
-            if rxn_index in self.rxn_options_dict['beta'].keys():
+            if rxn_index in list(self.rxn_options_dict['beta'].keys()):
                 beta = float(self.rxn_options_dict['beta'][rxn_index])
             else:
                 beta = self.beta
@@ -1041,9 +1040,6 @@ class ThermoCorrections(ReactionModelWrapper):
             thermo_dict[TS] =\
                     - voltage\
                     + beta * (voltage-pot_rev[TS]) + self.fixed_barrier
-            #thermo_dict[TS] =\
-            #        - voltage\
-            #        + barrier
 
             #3) add H_g thermo correction, since initial state is also lifted by this and this would 
             # introduce a change in the barrier
@@ -1053,7 +1049,7 @@ class ThermoCorrections(ReactionModelWrapper):
             #- voltage_ref)
             #self.temperature=300
             if self.potential_reference_scale=='RHE':
-                thermo_dict[TS] -= beta*.0592/298.14*self.temperature*self.pH
+                thermo_dict[TS] -= beta*.0592*self.pH/298.14*self.temperature
 
         #set maximum value for chem. prefactor
         #for TS in TS_names_chem:
@@ -1078,101 +1074,6 @@ class ThermoCorrections(ReactionModelWrapper):
         #    #get the new desired barrier
         #    barrier=-np.log(prefactor/float(self.prefactor_list[rxn_index]))*(kB*self.temperature)
         #    thermo_dict[TS]=barrier
-
-
-        return thermo_dict
-
-    def reversible_kinetics_electrochemical(self):
-        """
-        Calculate electrochemical (potential) corrections to free energy.
-        Use method from dx.doi.org/10.1021/jz3021155
-        i.e. reference all reaction steps to to their reversible potential
-        """
-        #we start by doing the same thing as before  in generate_echem_TS_energies
-        #we loop over all transition states, this procedue gives us also 
-        #acess to the reversible potential
-
-        #get all electrochemical transition states
-
-        TS_names = [TS for TS in self.transition_state_names if
-            'pe' in TS.split('_')[0] or 'ele' in TS.split('_')[0]]
-        voltage = self.voltage
-        thermo_dict = {}
-
-        def get_E_to_G(state, E_to_G_dict):
-            E_to_G = 0.
-            for ads in state:
-                if ads in E_to_G_dict:
-                    E_to_G += E_to_G_dict[ads]
-            return E_to_G
-        pot_rev={}
-        for echem_TS in TS_names:
-            preamble, site = echem_TS.split('_')
-            #echem, rxn_index, barrier = preamble.split('-')
-            rxn_index=self.get_rxn_index_from_TS(echem_TS)
-            rxn_index = int(rxn_index)
-            rxn = self.elementary_rxns[rxn_index]
-            IS = rxn[0]
-            FS = rxn[-1]
-            #remove voltage dependence!! we need dG at zero V
-            E_IS = self.get_state_energy(IS, self._electronic_energy_dict)
-            E_FS = self.get_state_energy(FS, self._electronic_energy_dict)
-            G_IS = E_IS + get_E_to_G(IS, self._correction_dict)
-            G_FS = E_FS + get_E_to_G(FS, self._correction_dict)
-            dG = G_FS - G_IS
-
-            pot_rev[echem_TS]=-dG
-
-
-#        print 'THE REVERSIBLE POTENTIALS',pot_rev
-
-        #2nd part, regular electrochemistry
-        thermo_dict = {}
-        gas_names = [gas for gas in self.gas_names if gas.split('_')[0] in ['pe', 'ele']]
-
-
-
-
-        voltage = self.voltage #- self.Ustern #substract here the potential at the Stern plane, if defined at input
-
-        self.beta=0.5
-        beta = self.beta
-
-        # scale pe thermo correction by voltage (vs RHE)
-        for gas in gas_names:
-            thermo_dict[gas] = -voltage
-
-
-        # no hbond correction for simple_electrochemical
-        # correct TS energies with beta*voltage (and hbonding?)
-        for TS in TS_names:
-            rxn_index = self.get_rxn_index_from_TS(TS)
-            if rxn_index in list(self.rxn_options_dict['beta'].keys()):
-                beta = float(self.rxn_options_dict['beta'][rxn_index])
-            else:
-                beta = self.beta
-            #we subtract the barrier extrapolated reference potential here
-            #note that this is just the potential at which the TS energies were extrapolated.
-            #IS and FS energies are still referenced to voltage = 0, meaning
-            #that free energy differences are still referenced to voltage = 0
-            #this means we have to correct the difference TS-IS = beta * (voltage-voltage_ref)
-#            thermo_dict[TS] = - (voltage) * (1 - beta) - beta * voltage_ref
-            #1) shift TS energy because we also shift IS energy
-            #   by voltage (does not change activation energy)
-            #2) add the activation energy dependence on voltage
-            thermo_dict[TS] =\
-                    - voltage\
-                    + beta * (voltage-pot_rev[TS]) + self.fixed_barrier
-
-            #3) add H_g thermo correction, since initial state is also lifted by this and this would 
-            # introduce a change in the barrier
-
-            thermo_dict[TS] += self._correction_dict['H2_g']/2
-
-            #- voltage_ref)
-            #self.temperature=300
-            if self.potential_reference_scale=='RHE':
-                thermo_dict[TS] -= beta*.0592*self.pH #/298.14*self.temperature
         return thermo_dict
 
     def read_comsol(self,fname):

@@ -305,7 +305,7 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                 outfile.write(' '*90+'\n')
 
 
-            with open('FED'+add+'.txt','w') as outfile:
+            with open('FED_rxn'+add+'.txt','w') as outfile:
                 outfile.write(' '*90+'\n')
                 outfile.write('%'*90+'\n')
                 outfile.write('FREE ENERGIES AND BARRIERS OF REACTIONS\n')
