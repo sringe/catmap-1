@@ -437,6 +437,26 @@ class FirstOrderInteractions(ReactionModelWrapper):
                     cross_term_names.append(name)
                     interaction_dict[name] = params
 
+        for a in self.transition_state_names:
+            cross_params = self.species_definitions[a].get(
+                    'cross_interaction_parameters',{})
+            for cp in cross_params:
+                if cp not in self.adsorbate_names+self.transition_state_names:
+                    raise ValueError(
+                            'Cross parameter name must be in adsorbate names. The '+\
+                            'name ' + cp + ' is not in ' +\
+                            str(self.adsorbate_names+self.transition_state_names))
+                params = cross_params[cp]
+                if len(params) != len(self.surface_names):
+                    raise ValueError('Cross parameters must be specified for each surface. '+\
+                            str(len(params)) + ' parameters were specified, but there are '+\
+                            str(len(self.surface_names)) + 'surfaces for '+ a +','+cp+'.' )
+                ads_a, ads_b = [a,cp] #sort to avoid duplicates 
+                name = '&'.join([ads_a,ads_b])
+                if name not in cross_term_names:
+                    cross_term_names.append(name)
+                    interaction_dict[name] = params
+
         if cross_term_names:
             cross_term_names = tuple(cross_term_names) 
             self.interaction_cross_term_names = cross_term_names
@@ -562,11 +582,11 @@ class FirstOrderInteractions(ReactionModelWrapper):
                 a,b = name.split('&')
                 i = all_names.index(a)
                 j = all_names.index(b)
-                epsilon_matrix[i,j] = param#= epsilon_matrix[j,i] 
+                epsilon_matrix[i,j] = epsilon_matrix[j,i] = param 
 
         for i, e_i in enumerate(self_interactions):
             for j, e_j in enumerate(self_interactions):
-                if epsilon_matrix[i,j] < 0.0000001:
+                if epsilon_matrix[i,j] < 0.00000001:
                     if self.cross_interaction_mode == 'geometric_mean':
                         epsilon_matrix[i,j] = np.sqrt(abs(e_i)*abs(e_j))
                     elif self.cross_interaction_mode == 'arithmetic_mean':
@@ -589,9 +609,16 @@ class FirstOrderInteractions(ReactionModelWrapper):
         for i,TS_params in enumerate(list(self.interaction_transition_state_scaling_matrix)):
             i += n_ads
             TS_params = list(TS_params)
-            for j, epsilon_params in enumerate(list(epsilon_matrix[0:n_ads,0:n_ads].transpose())):
+            for j, epsilon_params in enumerate(list(epsilon_matrix[0:n_ads,0:n_ads])):
                 e_TS = np.dot(TS_params,epsilon_params)
                 epsilon_matrix[i,j] = epsilon_matrix[j,i] = e_TS
+
+        if len(cross_interactions)>0:
+            for name, param in zip(self.interaction_cross_term_names,cross_interactions):
+                a,b = name.split('&')
+                i = all_names.index(a)
+                j = all_names.index(b)
+                epsilon_matrix[i,j] = epsilon_matrix[j,i] = param 
 
 
         epsilon_matrix *= self.interaction_strength
