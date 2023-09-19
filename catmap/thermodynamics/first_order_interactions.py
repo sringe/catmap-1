@@ -431,7 +431,7 @@ class FirstOrderInteractions(ReactionModelWrapper):
                     raise ValueError('Cross parameters must be specified for each surface. '+\
                             str(len(params)) + ' parameters were specified, but there are '+\
                             str(len(self.surface_names)) + 'surfaces for '+ a +','+cp+'.' )
-                ads_a, ads_b = [a,cp] #sort to avoid duplicates 
+                ads_a, ads_b = sorted([a,cp]) #sort to avoid duplicates 
                 name = '&'.join([ads_a,ads_b])
                 if name not in cross_term_names:
                     cross_term_names.append(name)
@@ -451,7 +451,7 @@ class FirstOrderInteractions(ReactionModelWrapper):
                     raise ValueError('Cross parameters must be specified for each surface. '+\
                             str(len(params)) + ' parameters were specified, but there are '+\
                             str(len(self.surface_names)) + 'surfaces for '+ a +','+cp+'.' )
-                ads_a, ads_b = [a,cp] #sort to avoid duplicates 
+                ads_a, ads_b = sorted([a,cp]) #sort to avoid duplicates 
                 name = '&'.join([ads_a,ads_b])
                 if name not in cross_term_names:
                     cross_term_names.append(name)
@@ -644,11 +644,11 @@ class FirstOrderInteractions(ReactionModelWrapper):
             for ads in IS:
                 if ads in self.adsorbate_names:
                     idx = self.adsorbate_names.index(ads)
-                    weight_TS[idx] = (1-weight)
+                    weight_TS[idx] += (1-weight)
             for ads in FS:
                 if ads in self.adsorbate_names:
                     idx = self.adsorbate_names.index(ads)
-                    weight_TS[idx] = weight
+                    weight_TS[idx] += weight
             weight_matrix.append(weight_TS)
         return weight_matrix
 
