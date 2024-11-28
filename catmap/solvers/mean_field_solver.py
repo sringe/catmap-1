@@ -470,7 +470,7 @@ class MeanFieldSolver(SolverBase):
                 rxnOrder = [o for o in rxnCounts if o]
                 if rxnOrder:
                     rxnOrder = rxnOrder[0]
-                    dcdt_str += ' + ' + str(int(rxnOrder))+'*r['+str(j)+']'
+                    dcdt_str += ' + ' + self.species_definitions[ads].n_sites + '*' +  str(int(rxnOrder))+'*r['+str(j)+']'
             if dcdt_str.endswith('= '):
                 dcdt_str += '0'
             dcdt_strings.append(dcdt_str)
