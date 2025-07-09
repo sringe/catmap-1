@@ -156,10 +156,12 @@ class MechanismAnalysis(MechanismPlot,ReactionModelWrapper,MapPlot):
                                 #if P==0:
                                 #    print('Pressure is zero, setting it to 1')
                                 #    P=1
+                                assert(P>0)
                                 if P > 0.:
                                     energy_dict[key] += self._kB*self.temperature*log(P)
-                                else:
-                                    pass
+                                #else:
+                                #    assert(e energy corrections")
+#                               #     pass
                     if self.coverage_correction == True:
                         #print('printing coverage correctin')
                         if not self.coverage_map:
