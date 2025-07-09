@@ -251,12 +251,13 @@ class ThermoCorrections(ReactionModelWrapper):
         temperature= float(self.temperature)
         gas_names = self.gas_names
 
+
         thermo_dict = {}
         if temperature == 0: temperature = 1e-99
 
         gas_renames = {'CH2O_g':'H2CO_g'}
 
-        extra_gases=['NH2OH_g','N2O_g']
+        extra_gases=['NH2OH_g','N2O_g','CH4O2_g']
 #        extra_numbers=[4, 6, 6, 1, 1, 1, 1]
 
         def set_gas_name(gas):
@@ -268,6 +269,8 @@ class ThermoCorrections(ReactionModelWrapper):
                         prop=read('/home/ringe/projects/NOR_FeNC/NH2OH.traj') #/home/ringe/archive_sherlock/GAS/NH2OH_gas/relax_ase_bfgs/BFGS.traj')
                     elif gas=='N2O_g':
                         prop=read('/home/ringe/projects/NOR_FeNC/N2O.traj')
+                    elif gas=='CH4O2_g':
+                        prop=read('~/Dropbox/DataRinge/24-12-10_ReproducingXinyan/CH4O2.traj')
                 except:
                     pass
             return prop
