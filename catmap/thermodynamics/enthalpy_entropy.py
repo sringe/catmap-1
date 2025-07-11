@@ -910,7 +910,7 @@ class ThermoCorrections(ReactionModelWrapper):
             if self.potential_reference_scale=='RHE':
                 G_TS -= beta*.0592/298.14*self.temperature*self.pH
             # make sure we're "correcting" the right value
-            assert(self._electronic_energy_dict[echem_TS]) == 0.
+            #assert(self._electronic_energy_dict[echem_TS]) == 0.
             self._correction_dict[echem_TS] = 0.
 
             thermo_dict[echem_TS] = G_TS

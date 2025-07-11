@@ -618,6 +618,24 @@ def add_dict_in_place(dict1, dict2):
         else:
             dict1[k] = dict2[k]
 
+def subtract_dict_in_place(dict1, dict2):
+    """
+    Subtract values from dict2 from  dict1 if they exist
+
+    :param dict1: Dictionary.
+
+    :type dict1: dict
+
+    :param dict2: Dictionary.
+
+    :type dict2: dict
+    """
+    for k, v in dict2.items(): # inefficient in Py2 but at least works in Py3
+        if k in dict1:
+            dict1[k] -= dict2[k]
+        #else:
+        #    dict1[k] = dict2[k]
+
 
 def fetch_all_output_variables():
     """Use code-inspection to extract all processed output variables from
