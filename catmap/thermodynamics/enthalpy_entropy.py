@@ -116,7 +116,7 @@ class ThermoCorrections(ReactionModelWrapper):
                 state_dict[key] = kwargs[key]
         current_state = [repr(state_dict[v]) 
                 for v in self.thermodynamic_variables]
-
+        
         for sp in self.species_definitions:
             self.frequency_dict[sp] = \
                     self.species_definitions[sp].get('frequencies',[])
@@ -845,7 +845,7 @@ class ThermoCorrections(ReactionModelWrapper):
             return E_to_G
         for echem_TS in echem_TS_names:
             preamble, site = echem_TS.split('_')
-            echem, rxn_index, barrier = preamble.split('-')
+            echem, rxn_index, barrier = preamble.split('-',2)
             rxn_index = int(rxn_index)
             rxn = self.elementary_rxns[rxn_index]
             if rxn_index in list(self.rxn_options_dict['beta'].keys()):
@@ -853,13 +853,20 @@ class ThermoCorrections(ReactionModelWrapper):
             else:
                 beta = self.beta
             IS = rxn[0]
+            print("IS is {}".format(IS))
             FS = rxn[-1]
+            print("FS is {}".format(FS))
+            n_ele= IS.count('ele_g') 
+            #print("No of electrons is {}".format(n_ele))
+            #print(self._electronic_energy_dict)
             E_IS = self.get_state_energy(IS, self._electronic_energy_dict)
             E_FS = self.get_state_energy(FS, self._electronic_energy_dict)
             G_IS = E_IS + get_E_to_G(IS, self._correction_dict)
+            #print(self._correction_dict)
+            #print("G_IS is {}".format(G_IS))
             G_FS = E_FS + get_E_to_G(FS, self._correction_dict)
+            #print("G_FS is {}".format(G_FS))
             dG = G_FS - G_IS
-
             #SR: comment on this procedure
             #-- the following calculation of the TS energy relative to IS
             #-- is based on this equation:
@@ -878,6 +885,7 @@ class ThermoCorrections(ReactionModelWrapper):
                 #by pH, but this is not important anymore as I deactivate all pH contributions in dG
                 #G_TS = G_IS + float(barrier) + beta * dG
                 G_TS = G_FS + float(barrier) + (1 - beta) *  -dG
+                #print("Reversible potential for {} is {}".format(echem_TS,-dG))
             elif self.beta_mode == 'effective_surface_charging':
                 ######################
                 #SR NOW COMES THE PROCEDURE TO CALCULATE THE REVERSIBLE POTENTIAL
@@ -886,16 +894,19 @@ class ThermoCorrections(ReactionModelWrapper):
                 G_IS = E_IS + get_E_to_G(IS, correction_dict)
                 G_FS = E_FS + get_E_to_G(FS, correction_dict)
                 dG = G_FS - G_IS # this is Delta_i E_0 + Delta_i E^(T,S,ZPE,circ) + eU (the reaction energy without charging correction)
+                dG-=n_ele*voltage #remove the CHE shift of dG to get dG at sigma=0 without CHE part
                 #this is the reversible potential without charging corrections (can be used as initial guess,
-                # if the rev. potential is close to the PZC it will be a good guess)
-                oldrevpot = -(dG-voltage)
+                # if the rev. (potential is close to the PZC it will be a good guess)
+                oldrevpot = -dG
                 def func(phii):
                     phi=phii[0]
+                    print("Phi",phi)
                     #calculate surface charging correction for initial and final state
                     G_IS_charging_corr = get_E_to_G(IS, self.surface_charging_corr(phi))
                     G_FS_charging_corr = get_E_to_G(FS, self.surface_charging_corr(phi))
                     dG_charging_corr = G_FS_charging_corr-G_IS_charging_corr
-                    return (dG-voltage) + phi + dG_charging_corr
+                    #print("dG charging corr = {}".format(G_IS))
+                    return dG + n_ele*phi + dG_charging_corr
 
                 #find roots of this function, initial guess it reversible potential
                 revpot=fsolve(func,oldrevpot)[0]
@@ -1172,6 +1183,7 @@ class ThermoCorrections(ReactionModelWrapper):
             IS = rxn[0]
             FS = rxn[-1]
             #first determine dG
+            #print("This is {}".format(self._electronic_energy_dict))
             E_IS = self.get_state_energy(IS, self._electronic_energy_dict)
             E_FS = self.get_state_energy(FS, self._electronic_energy_dict)
             G_IS = E_IS + get_E_to_G(IS, self._correction_dict)

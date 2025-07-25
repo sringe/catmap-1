@@ -18,7 +18,6 @@ from itertools import combinations_with_replacement as combinations
 class FirstOrderInteractions(ReactionModelWrapper):
     """Class for implementing 'first-order adsorbate interaction model. 
     Should be sub-classed by scaler."""
-
     def __init__(self,reaction_model=None):
         if reaction_model is None:
             reaction_model = ReactionModel()
@@ -626,7 +625,7 @@ class FirstOrderInteractions(ReactionModelWrapper):
         return weight_matrix
 
     @staticmethod
-    def smooth_piecewise_linear_response(*args,**kwargs):
+    def smooth_piecewise_linear_response(*args,**kwargs): 
         return smooth_piecewise_linear(*args,**kwargs)[:2]
 
     @staticmethod

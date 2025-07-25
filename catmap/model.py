@@ -1514,7 +1514,10 @@ class ReactionModel:
         """
         for echem_TS in self.echem_transition_state_names:
             preamble, site = echem_TS.split('_')
-            echem, rxn_index, barrier = preamble.split('-')
+            echem, rxn_index, barrier = preamble.split('-',2)
+            print(echem)
+            print(rxn_index)
+            print(barrier)
             rxn_index = int(rxn_index)
             barrier = float(barrier)
             self.species_definitions[echem_TS] = {}
