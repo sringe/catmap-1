@@ -12,6 +12,20 @@ from .data import regular_expressions
 string2symbols = catmap.string2symbols
 plt = catmap.plt
 
+PAPER1 = """\
+Medford, A. J., Shi, C., Hoffmann, M. J., Lausche, A. C., Fitzgibbon, S. R., \
+Bligaard, T., & Nørskov, J. K. (2015). CatMAP: a software package for descriptor-based \
+microkinetic mapping of catalytic trends. Catalysis Letters, 145, 794-807."""
+
+PAPER2 = f"""\
+Vijay, S., H. Heenen, H., Singh, A. R., Chan, K., & Voss, J. (2024). \
+Number of sites-based solver for determining coverages from steady-state mean-field \
+micro-kinetic models. Journal of Computational Chemistry, 45(9), 546-551."""
+
+CITATION_INFORMATION = f"""\
+If you find CatMAP useful to your research, please cite both the following papers:
+\n {PAPER1} \n {PAPER2}\n"""
+
 class ReactionModel:
     """
     The central object that defines a microkinetic model consisting of:
@@ -58,6 +72,9 @@ class ReactionModel:
                          'solver', 'mapper']
         self._solved = None
         # Keeps track of whether or not the model was solved.
+
+        # check if citation information is written
+        self.citation_info_written = False
 
         # Attributes for logging
         self._log_lines = []
@@ -170,6 +187,7 @@ class ReactionModel:
             #self._Axb_solver = mp.qr_solve
             self._Axb_solver = mp.lu_solve
             self._math.infnorm = lambda x: mp.norm(x, 'inf')
+            self._math.lsqnorm = lambda x: mp.norm(x, 2)**2
         elif self.numerical_representation in ['numpy', 'python']:
             self._log_imports += "\nfrom numpy import matrix \n\n"
             self._math = np
@@ -285,6 +303,8 @@ class ReactionModel:
                         # Line is too long for logfile -> put into pickle
                         self._pickle_attrs.append(attr)
             pickled_data = {}
+            if self.use_numbers_solver:
+                self._pickle_attrs.append('numbers_map')
             for attr in self._pickle_attrs:
                 pickled_data[attr] = getattr(self, attr)
             if sys.version_info[0]<3:
@@ -379,7 +399,11 @@ class ReactionModel:
                 voltage_diff_drop = 0.0,
                 decimal_precision = 75,
                 verbose = 1,
-                data_file = 'data.pkl')
+                use_numbers_solver = True,
+                max_damping_iterations = 10,
+                fix_x_star = False,
+                data_file = 'data.pkl',
+                DEBUG = False,)
 
         globs = {}
         locs = defaults
@@ -1155,6 +1179,10 @@ class ReactionModel:
         header += 'binary_data = ' + 'pickle.load(open("' + \
                                                 self.data_file +'","rb"))\n\n'
         header += 'locals().update(binary_data)\n\n'
+        header += f'__citation__ = """{CITATION_INFORMATION}"""\n'
+        if not self.citation_info_written:
+            print(CITATION_INFORMATION)
+            self.citation_info_written = True
         for attr in dir(self):
             if (not attr.startswith('_') and
                     not callable(getattr(self,attr)) and
